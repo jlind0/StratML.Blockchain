@@ -420,6 +420,32 @@ namespace StratML.Contracts.PerfomancePlanOrReport
              return ContractHandler.SendRequestAndWaitForReceiptAsync(updateAdministrativeInformationFunction, cancellationToken);
         }
 
+        public Task<string> UpdateMissionRequestAsync(UpdateMissionFunction updateMissionFunction)
+        {
+             return ContractHandler.SendRequestAsync(updateMissionFunction);
+        }
+
+        public Task<TransactionReceipt> UpdateMissionRequestAndWaitForReceiptAsync(UpdateMissionFunction updateMissionFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateMissionFunction, cancellationToken);
+        }
+
+        public Task<string> UpdateMissionRequestAsync(string description)
+        {
+            var updateMissionFunction = new UpdateMissionFunction();
+                updateMissionFunction.Description = description;
+            
+             return ContractHandler.SendRequestAsync(updateMissionFunction);
+        }
+
+        public Task<TransactionReceipt> UpdateMissionRequestAndWaitForReceiptAsync(string description, CancellationTokenSource cancellationToken = null)
+        {
+            var updateMissionFunction = new UpdateMissionFunction();
+                updateMissionFunction.Description = description;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateMissionFunction, cancellationToken);
+        }
+
         public Task<string> UpdateSumbitterRequestAsync(UpdateSumbitterFunction updateSumbitterFunction)
         {
              return ContractHandler.SendRequestAsync(updateSumbitterFunction);
@@ -480,6 +506,32 @@ namespace StratML.Contracts.PerfomancePlanOrReport
                 updateValueFunction.Description = description;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(updateValueFunction, cancellationToken);
+        }
+
+        public Task<string> UpdateVisionRequestAsync(UpdateVisionFunction updateVisionFunction)
+        {
+             return ContractHandler.SendRequestAsync(updateVisionFunction);
+        }
+
+        public Task<TransactionReceipt> UpdateVisionRequestAndWaitForReceiptAsync(UpdateVisionFunction updateVisionFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateVisionFunction, cancellationToken);
+        }
+
+        public Task<string> UpdateVisionRequestAsync(string description)
+        {
+            var updateVisionFunction = new UpdateVisionFunction();
+                updateVisionFunction.Description = description;
+            
+             return ContractHandler.SendRequestAsync(updateVisionFunction);
+        }
+
+        public Task<TransactionReceipt> UpdateVisionRequestAndWaitForReceiptAsync(string description, CancellationTokenSource cancellationToken = null)
+        {
+            var updateVisionFunction = new UpdateVisionFunction();
+                updateVisionFunction.Description = description;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateVisionFunction, cancellationToken);
         }
     }
 }
