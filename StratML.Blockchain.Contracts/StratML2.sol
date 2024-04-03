@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./BokkyPooBahsDateTimeLibrary.sol";
 enum ReportType{
     StrategticPlan,
     PerfomancePlan,
@@ -200,6 +201,303 @@ struct PerfomancePlanOrReportResponse{
     PerfomancePlanOrReportResponseBase base;
     StrategeticPlanCoreResponse strategeticPlanCore;
 }
+contract StratMLRegistry{
+    using BokkyPooBahsDateTimeLibrary for uint;
+    address[] roles;
+    mapping(bytes => address[]) roleMap;
+    address[] stakeholders;
+    mapping(bytes => address[]) stakeholderMap;
+    address[] organizations;
+    mapping(bytes => address[]) organizationMap;
+    address[] perfomancePlanOrReports;
+    mapping(bytes => address[]) perfomancePlanOrReportMap;
+    mapping(uint => address[]) perfomancePlanOrReportByStartDate;
+    mapping(address => uint) perfomancePlanOrReportEndDate;
+    mapping(uint => address[]) perfomancePlanOrReportByPublicationDate;
+    event RoleAdded(address indexed roleAddress);
+    event StakeholderAdded(address indexed stakeholderAddress);
+    event OrganizationAdded(address indexed organizationAddress);
+    event PerfomancePlanOrReportAdded(address indexed perfomancePlanOrReportAddress);
+    function addRole(address role) public{
+        for(uint i = 0; i < roles.length; i++){
+            if(roles[i] == role){
+                return;
+            }
+        }
+        roles.push(role);
+        Role roleInstance = Role(role);
+        roleMap[abi.encodePacked(roleInstance.name())].push(role);
+        emit RoleAdded(role);
+    }
+    function removeRole(address role) public{
+       // Remove from roleMap
+        Role roleInstance = Role(role);
+        require(roleInstance.owner() == msg.sender, "Only the owner of the role can remove it");
+       // Remove from roles array
+        _removeAddressFromArray(roles, role);
+
+        
+        bytes memory roleName = abi.encodePacked(roleInstance.name());
+        _removeAddressFromArray(roleMap[roleName], role);
+    }
+    function getAllRoles() public view returns(RoleResponse[] memory){
+        RoleResponse[] memory response = new RoleResponse[](roles.length);
+        for(uint i = 0; i < roles.length; i++){
+            Role role = Role(roles[i]);
+            response[i] = role.getRole();
+        }
+        return response;   
+    }
+    function getRolesByName(string memory name) public view returns(RoleResponse[] memory){
+        bytes memory roleName = abi.encodePacked(name);
+        RoleResponse[] memory response = new RoleResponse[](roleMap[roleName].length);
+        for(uint i = 0; i < roleMap[roleName].length; i++){
+            Role role = Role(roleMap[roleName][i]);
+            response[i] = role.getRole();
+        }
+        return response;
+    }
+    function updateRoleIndexer(address role, string memory oldName) public{
+        Role roleInstance = Role(role);
+        require(roleInstance.owner() == msg.sender, "Only the owner of the role can update the indexer");
+        bytes memory oldRoleName = abi.encodePacked(oldName);
+        bytes memory newRoleName = abi.encodePacked(roleInstance.name());
+        if(keccak256(oldRoleName) != keccak256(newRoleName)){
+            _removeAddressFromArray(roleMap[oldRoleName], role);
+            roleMap[newRoleName].push(role);
+        }
+    }
+    function addStakeholder(address stakeholder) public{
+        for(uint i = 0; i < stakeholders.length; i++){
+            if(stakeholders[i] == stakeholder){
+                return;
+            }
+        }
+        stakeholders.push(stakeholder);
+        Stakeholder stakeholderInstance = Stakeholder(stakeholder);
+        stakeholderMap[abi.encodePacked(stakeholderInstance.name())].push(stakeholder);
+        emit StakeholderAdded(stakeholder);
+    }
+    function removeStakeholder(address stakeholder) public{
+        Stakeholder stakeholderInstance = Stakeholder(stakeholder);
+        require(stakeholderInstance.owner() == msg.sender, "Only the owner of the stakeholder can remove it");
+        // Remove from stakeholders array
+        _removeAddressFromArray(stakeholders, stakeholder);
+
+        // Remove from stakeholderMap
+        
+        bytes memory stakeholderName = abi.encodePacked(stakeholderInstance.name());
+        _removeAddressFromArray(stakeholderMap[stakeholderName], stakeholder);
+    }
+    function getAllStakeholders() public view returns(StakeholderResponse[] memory){
+        StakeholderResponse[] memory response = new StakeholderResponse[](stakeholders.length);
+        for(uint i = 0; i < stakeholders.length; i++){
+            Stakeholder stakeholder = Stakeholder(stakeholders[i]);
+            response[i] = stakeholder.getStakeholder();
+        }
+        return response;   
+    }
+    function getStakeholdersByName(string memory name) public view returns(StakeholderResponse[] memory){
+        bytes memory stakeholderName = abi.encodePacked(name);
+        StakeholderResponse[] memory response = new StakeholderResponse[](stakeholderMap[stakeholderName].length);
+        for(uint i = 0; i < stakeholderMap[stakeholderName].length; i++){
+            Stakeholder stakeholder = Stakeholder(stakeholderMap[stakeholderName][i]);
+            response[i] = stakeholder.getStakeholder();
+        }
+        return response;
+    }
+    function updateStakeholderIndexer(address stakeholder, string memory oldName) public{
+        Stakeholder stakeholderInstance = Stakeholder(stakeholder);
+        require(stakeholderInstance.owner() == msg.sender, "Only the owner of the stakeholder can update the indexer");
+        bytes memory oldStakeholderName = abi.encodePacked(oldName);
+        bytes memory newStakeholderName = abi.encodePacked(stakeholderInstance.name());
+        if(keccak256(oldStakeholderName) != keccak256(newStakeholderName)){
+            _removeAddressFromArray(stakeholderMap[oldStakeholderName], stakeholder);
+            stakeholderMap[newStakeholderName].push(stakeholder);
+        }
+    }
+    function addOrganization(address organization) public{
+        for(uint i = 0; i < organizations.length; i++){
+            if(organizations[i] == organization){
+                return;
+            }
+        }
+        organizations.push(organization);
+        Organization organizationInstance = Organization(organization);
+        organizationMap[abi.encodePacked(organizationInstance.name())].push(organization);
+        emit OrganizationAdded(organization);
+    }
+    function removeOrganization(address organization) public{
+        Organization organizationInstance = Organization(organization);
+        require(organizationInstance.owner() == msg.sender, "Only the owner of the organization can remove it");
+        // Remove from organizations array
+        _removeAddressFromArray(organizations, organization);
+
+        // Remove from organizationMap
+        
+        bytes memory organizationName = abi.encodePacked(organizationInstance.name());
+        _removeAddressFromArray(organizationMap[organizationName], organization);
+    }
+    function getAllOrganizations() public view returns(OrganizationResponse[] memory){
+        OrganizationResponse[] memory response = new OrganizationResponse[](organizations.length);
+        for(uint i = 0; i < organizations.length; i++){
+            Organization organization = Organization(organizations[i]);
+            response[i] = organization.getOrganizationResponse();
+        }
+        return response;   
+    }
+    function getOrganizationsByName(string memory name) public view returns(OrganizationResponse[] memory){
+        bytes memory organizationName = abi.encodePacked(name);
+        OrganizationResponse[] memory response = new OrganizationResponse[](organizationMap[organizationName].length);
+        for(uint i = 0; i < organizationMap[organizationName].length; i++){
+            Organization organization = Organization(organizationMap[organizationName][i]);
+            response[i] = organization.getOrganizationResponse();
+        }
+        return response;
+    }
+    function updateOrganizationIndexer(address organization, string memory oldName) public{
+        Organization organizationInstance = Organization(organization);
+        require(organizationInstance.owner() == msg.sender, "Only the owner of the organization can update the indexer");
+        bytes memory oldOrganizationName = abi.encodePacked(oldName);
+        bytes memory newOrganizationName = abi.encodePacked(organizationInstance.name());
+        if(keccak256(oldOrganizationName) != keccak256(newOrganizationName)){
+            _removeAddressFromArray(organizationMap[oldOrganizationName], organization);
+            organizationMap[newOrganizationName].push(organization);
+        }
+    }
+    function boxDateTime(uint time) public pure returns (uint){
+        (uint year, uint month, uint day) = time.timestampToDate();
+        return BokkyPooBahsDateTimeLibrary.timestampFromDate(year, month, day);
+    }
+    function addPerfomancePlanOrReport(address perfomancePlanOrReport) public{
+        for(uint i = 0; i < perfomancePlanOrReports.length; i++){
+            if(perfomancePlanOrReports[i] == perfomancePlanOrReport){
+                return;
+            }
+        }
+        perfomancePlanOrReports.push(perfomancePlanOrReport);
+        PerfomancePlanOrReport perfomancePlanOrReportInstance = PerfomancePlanOrReport(perfomancePlanOrReport);
+        perfomancePlanOrReportMap[abi.encodePacked(perfomancePlanOrReportInstance.name())].push(perfomancePlanOrReport);
+        AdministrativeInformationResponse memory administrativeInformation = perfomancePlanOrReportInstance.getAdministrativeInformation();
+        if(administrativeInformation.startDate != 0)
+            perfomancePlanOrReportByStartDate[boxDateTime(administrativeInformation.startDate)].push(perfomancePlanOrReport);
+        if(administrativeInformation.endDate != 0)
+            perfomancePlanOrReportEndDate[perfomancePlanOrReport] = boxDateTime(administrativeInformation.endDate);
+        if(administrativeInformation.publicationDate != 0)
+            perfomancePlanOrReportByPublicationDate[boxDateTime(administrativeInformation.publicationDate)].push(perfomancePlanOrReport);
+        emit PerfomancePlanOrReportAdded(perfomancePlanOrReport);
+    }
+    function removePerfomancePlanOrReport(address perfomancePlanOrReport) public{
+        PerfomancePlanOrReport perfomancePlanOrReportInstance = PerfomancePlanOrReport(perfomancePlanOrReport);
+        require(perfomancePlanOrReportInstance.owner() == msg.sender, "Only the owner of the perfomancePlanOrReport can remove it");
+        // Remove from perfomancePlanOrReports array
+        _removeAddressFromArray(perfomancePlanOrReports, perfomancePlanOrReport);
+
+        // Remove from perfomancePlanOrReportMap
+        AdministrativeInformationResponse memory administrativeInformation = perfomancePlanOrReportInstance.getAdministrativeInformation();
+        bytes memory perfomancePlanOrReportName = abi.encodePacked(perfomancePlanOrReportInstance.name());
+        _removeAddressFromArray(perfomancePlanOrReportMap[perfomancePlanOrReportName], perfomancePlanOrReport);
+        if(administrativeInformation.startDate != 0)
+            _removeAddressFromArray(perfomancePlanOrReportByStartDate[boxDateTime(administrativeInformation.startDate)], perfomancePlanOrReport);
+        delete perfomancePlanOrReportEndDate[perfomancePlanOrReport];
+        if(administrativeInformation.publicationDate != 0)
+            _removeAddressFromArray(perfomancePlanOrReportByPublicationDate[boxDateTime(administrativeInformation.publicationDate)], perfomancePlanOrReport);
+    }
+    function getAllPerfomancePlanOrReports() public view returns(PerfomancePlanOrReportResponse[] memory){
+        PerfomancePlanOrReportResponse[] memory response = new PerfomancePlanOrReportResponse[](perfomancePlanOrReports.length);
+        for(uint i = 0; i < perfomancePlanOrReports.length; i++){
+            PerfomancePlanOrReport perfomancePlanOrReport = PerfomancePlanOrReport(perfomancePlanOrReports[i]);
+            response[i] = perfomancePlanOrReport.getPerfomancePlanOrReportResponse();
+        }
+        return response;   
+    }
+    function getPerfomancePlanOrReportsByName(string memory name) public view returns(PerfomancePlanOrReportResponse[] memory){
+        bytes memory perfomancePlanOrReportName = abi.encodePacked(name);
+        PerfomancePlanOrReportResponse[] memory response = new PerfomancePlanOrReportResponse[](perfomancePlanOrReportMap[perfomancePlanOrReportName].length);
+        for(uint i = 0; i < perfomancePlanOrReportMap[perfomancePlanOrReportName].length; i++){
+            PerfomancePlanOrReport perfomancePlanOrReport = PerfomancePlanOrReport(perfomancePlanOrReportMap[perfomancePlanOrReportName][i]);
+            response[i] = perfomancePlanOrReport.getPerfomancePlanOrReportResponse();
+        }
+        return response;
+    }
+    function updatePerfomancePlanOrReportIndexer(address perfomancePlanOrReport, string memory oldName, uint oldStartDate, uint oldEndDate, uint oldPublicationDate) public{
+        PerfomancePlanOrReport perfomancePlanOrReportInstance = PerfomancePlanOrReport(perfomancePlanOrReport);
+        require(perfomancePlanOrReportInstance.owner() == msg.sender, "Only the owner of the perfomancePlanOrReport can update the indexer");
+        bytes memory oldPerfomancePlanOrReportName = abi.encodePacked(oldName);
+        bytes memory newPerfomancePlanOrReportName = abi.encodePacked(perfomancePlanOrReportInstance.name());
+        if(keccak256(oldPerfomancePlanOrReportName) != keccak256(newPerfomancePlanOrReportName)){
+            _removeAddressFromArray(perfomancePlanOrReportMap[oldPerfomancePlanOrReportName], perfomancePlanOrReport);
+            perfomancePlanOrReportMap[newPerfomancePlanOrReportName].push(perfomancePlanOrReport);
+        }
+        AdministrativeInformationResponse memory administrativeInformation = perfomancePlanOrReportInstance.getAdministrativeInformation();
+        if(oldStartDate != administrativeInformation.startDate){
+            _removeAddressFromArray(perfomancePlanOrReportByStartDate[boxDateTime(oldStartDate)], perfomancePlanOrReport);
+            if(administrativeInformation.startDate != 0)
+                perfomancePlanOrReportByStartDate[boxDateTime(administrativeInformation.startDate)].push(perfomancePlanOrReport);
+        }
+        if(oldEndDate != administrativeInformation.endDate){
+            delete perfomancePlanOrReportEndDate[perfomancePlanOrReport];
+            if(administrativeInformation.endDate != 0)
+                perfomancePlanOrReportEndDate[perfomancePlanOrReport] = boxDateTime(administrativeInformation.endDate);
+        }
+        if(oldPublicationDate != administrativeInformation.publicationDate){
+            _removeAddressFromArray(perfomancePlanOrReportByPublicationDate[boxDateTime(oldPublicationDate)], perfomancePlanOrReport);
+            if(administrativeInformation.publicationDate != 0)
+                perfomancePlanOrReportByPublicationDate[boxDateTime(administrativeInformation.publicationDate)].push(perfomancePlanOrReport);
+        }
+    }
+    function getAllPerfomancePlanOrReportsByValidDateRange(uint startDate, uint endDate) public view returns(PerfomancePlanOrReportResponse[] memory){
+        uint start = boxDateTime(startDate);
+        uint end = boxDateTime(endDate);
+        uint count = 0;
+        for(uint i = start; i <= end; i = i.addDays(1)){
+            for(uint j = 0; j < perfomancePlanOrReportByStartDate[i].length; j++){
+                if(perfomancePlanOrReportEndDate[perfomancePlanOrReportByStartDate[i][j]] <= end)
+                    continue;
+                count++;
+            }
+        }
+        PerfomancePlanOrReportResponse[] memory response = new PerfomancePlanOrReportResponse[](count);
+        count = 0;
+        for(uint i = start; i <= end; i = i.addDays(1)){
+            for(uint j = 0; j < perfomancePlanOrReportByStartDate[i].length; j++){
+                if(perfomancePlanOrReportEndDate[perfomancePlanOrReportByStartDate[i][j]] <= end)
+                    continue;
+                response[count++] = PerfomancePlanOrReport(perfomancePlanOrReportByStartDate[i][j]).getPerfomancePlanOrReportResponse();
+            }
+        }
+        return response;
+    }
+    function getAllPerformancePlanOrReportsByPublicationDateRange(uint startDate, uint endDate) public view returns(PerfomancePlanOrReportResponse[] memory){
+        uint start = boxDateTime(startDate);
+        uint end = boxDateTime(endDate);
+        uint count = 0;
+        for(uint i = start; i <= end; i = i.addDays(1)){
+            for(uint j = 0; j < perfomancePlanOrReportByPublicationDate[i].length; j++){
+                count++;
+            }
+        }
+        PerfomancePlanOrReportResponse[] memory response = new PerfomancePlanOrReportResponse[](count);
+        count = 0;
+        for(uint i = start; i <= end; i = i.addDays(1)){
+            for(uint j = 0; j < perfomancePlanOrReportByPublicationDate[i].length; j++){
+                response[count++] = PerfomancePlanOrReport(perfomancePlanOrReportByPublicationDate[i][j]).getPerfomancePlanOrReportResponse();
+            }
+        }
+        return response;
+    }
+    function _removeAddressFromArray(address[] storage array, address toRemove) private {
+        uint length = array.length;
+        for (uint i = 0; i < length; i++) {
+            if (array[i] == toRemove) {
+                array[i] = array[length - 1];
+                array.pop();
+                break;
+            }
+        }
+    }
+
+}
 contract Role is Ownable {
     string public name;
     string public description;
@@ -270,7 +568,7 @@ contract Role is Ownable {
 contract Stakeholder is Ownable {
     string public name;
     StakeholderType public stakeholderType;
-    address[] public roles; // Changed from a single address to an array
+    address[] public roles; 
 
     constructor(string memory _name, StakeholderType _stakeholderType, address[] memory _roles) Ownable(msg.sender) {
         name = _name;
@@ -831,6 +1129,18 @@ contract PerfomancePlanOrReport is Ownable{
         description = _description;
         reportType = _reportType;
     }
+    function updateVision(string memory _description) public onlyOwner{
+        if(address(vision) == address(0))
+            vision = address(new Vision(_description));
+        else
+            Vision(vision).updateVision(_description);
+    }
+    function updateMission(string memory _description) public onlyOwner{
+        if(address(mission) == address(0))
+            mission = address(new Mission(_description));
+        else
+            Mission(mission).updateMission(_description);
+    }
     function addOrganization(address _organizationAddress) public onlyOwner{
         for(uint i = 0; i < organizations.length; i++){
             if(organizations[i] == _organizationAddress){
@@ -885,10 +1195,16 @@ contract PerfomancePlanOrReport is Ownable{
         }
     }
     function updateAdministrativeInformation(uint _startDate, uint _endDate, uint _publicationDate, string memory _source) public onlyOwner{
-        administrativeInformation.updateAdministrativeInformation(_startDate, _endDate, _publicationDate, _source);
+        if(address(administrativeInformation) == address(0))
+            administrativeInformation = new AdministrativeInformation(_startDate, _endDate, _publicationDate, _source);
+        else
+            administrativeInformation.updateAdministrativeInformation(_startDate, _endDate, _publicationDate, _source);
     }
     function updateSumbitter(string memory _givenName, string memory _surname, string memory _phoneNumber, string memory _emailAddress) public onlyOwner{
-        sumbitter.updateContactInformation(_givenName, _surname, _phoneNumber, _emailAddress);
+        if(address(sumbitter) == address(0))
+            sumbitter = new ContactInformation(_givenName, _surname, _phoneNumber, _emailAddress);
+        else
+            sumbitter.updateContactInformation(_givenName, _surname, _phoneNumber, _emailAddress);
     }
     function getOrganizations() public view returns(address[] memory){
         return organizations;
@@ -912,8 +1228,10 @@ contract PerfomancePlanOrReport is Ownable{
         response.description = description;
         response.otherInformation = otherInformation;
         response.strategeticPlanCore = getStrategeticPlanCoreResponseBase();
-        response.administrativeInformation = administrativeInformation.getAdministrativeInformationResponse();
-        response.sumbitter = sumbitter.getContactInformationResponse();
+        if(address(administrativeInformation) != address(0))
+            response.administrativeInformation = administrativeInformation.getAdministrativeInformationResponse();
+        if(address(sumbitter) != address(0))
+            response.sumbitter = sumbitter.getContactInformationResponse();
         response.reportType = reportType;
         return response;
     }
@@ -926,8 +1244,10 @@ contract PerfomancePlanOrReport is Ownable{
     function getStrategeticPlanCoreResponseBase() public view returns(StrategeticPlanCoreResponseBase memory){
         StrategeticPlanCoreResponseBase memory response;
         response.organizations = organizations;
-        response.vision = Vision(vision).getVisionResponse();
-        response.mission = Mission(mission).getMissionResponse();
+        if(vision != address(0))
+            response.vision = Vision(vision).getVisionResponse();
+        if(mission != address(0))
+            response.mission = Mission(mission).getMissionResponse();
         response.values = values;
         response.goals = goals;
         return response;
