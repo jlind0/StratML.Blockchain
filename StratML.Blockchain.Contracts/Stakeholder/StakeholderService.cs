@@ -69,6 +69,16 @@ namespace StratML.Contracts.Stakeholder
             return ContractHandler.QueryDeserializingToObjectAsync<GetStakeholderFunction, GetStakeholderOutputDTO>(null, blockParameter);
         }
 
+        public Task<GetStakeholderBaseOutputDTO> GetStakeholderBaseQueryAsync(GetStakeholderBaseFunction getStakeholderBaseFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryDeserializingToObjectAsync<GetStakeholderBaseFunction, GetStakeholderBaseOutputDTO>(getStakeholderBaseFunction, blockParameter);
+        }
+
+        public Task<GetStakeholderBaseOutputDTO> GetStakeholderBaseQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryDeserializingToObjectAsync<GetStakeholderBaseFunction, GetStakeholderBaseOutputDTO>(null, blockParameter);
+        }
+
         public Task<string> NameQueryAsync(NameFunction nameFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<NameFunction, string>(nameFunction, blockParameter);

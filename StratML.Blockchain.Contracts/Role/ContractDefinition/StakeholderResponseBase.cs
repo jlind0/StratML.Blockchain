@@ -11,11 +11,13 @@ namespace StratML.Contracts.Role.ContractDefinition
 
     public class StakeholderResponseBaseBase 
     {
-        [Parameter("string", "name", 1)]
+        [Parameter("address", "identifier", 1)]
+        public virtual string Identifier { get; set; }
+        [Parameter("string", "name", 2)]
         public virtual string Name { get; set; }
-        [Parameter("uint8", "stakeholderType", 2)]
+        [Parameter("uint8", "stakeholderType", 3)]
         public virtual byte StakeholderType { get; set; }
-        [Parameter("address[]", "roles", 3)]
+        [Parameter("address[]", "roles", 4)]
         public virtual List<string> Roles { get; set; }
     }
 }

@@ -95,6 +95,27 @@ namespace StratML.Contracts.Role
             return ContractHandler.QueryDeserializingToObjectAsync<GetRoleFunction, GetRoleOutputDTO>(null, blockParameter);
         }
 
+        public Task<GetRoleBaseOutputDTO> GetRoleBaseQueryAsync(GetRoleBaseFunction getRoleBaseFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryDeserializingToObjectAsync<GetRoleBaseFunction, GetRoleBaseOutputDTO>(getRoleBaseFunction, blockParameter);
+        }
+
+        public Task<GetRoleBaseOutputDTO> GetRoleBaseQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryDeserializingToObjectAsync<GetRoleBaseFunction, GetRoleBaseOutputDTO>(null, blockParameter);
+        }
+
+        public Task<List<byte>> GetRoleTypesQueryAsync(GetRoleTypesFunction getRoleTypesFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetRoleTypesFunction, List<byte>>(getRoleTypesFunction, blockParameter);
+        }
+
+        
+        public Task<List<byte>> GetRoleTypesQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetRoleTypesFunction, List<byte>>(null, blockParameter);
+        }
+
         public Task<List<string>> GetStakeholderAddressesQueryAsync(GetStakeholderAddressesFunction getStakeholderAddressesFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<GetStakeholderAddressesFunction, List<string>>(getStakeholderAddressesFunction, blockParameter);
@@ -174,17 +195,6 @@ namespace StratML.Contracts.Role
              return ContractHandler.SendRequestAndWaitForReceiptAsync<RenounceOwnershipFunction>(null, cancellationToken);
         }
 
-        public Task<byte> RoleTypeQueryAsync(RoleTypeFunction roleTypeFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<RoleTypeFunction, byte>(roleTypeFunction, blockParameter);
-        }
-
-        
-        public Task<byte> RoleTypeQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<RoleTypeFunction, byte>(null, blockParameter);
-        }
-
         public Task<string> TransferOwnershipRequestAsync(TransferOwnershipFunction transferOwnershipFunction)
         {
              return ContractHandler.SendRequestAsync(transferOwnershipFunction);
@@ -221,22 +231,22 @@ namespace StratML.Contracts.Role
              return ContractHandler.SendRequestAndWaitForReceiptAsync(updateRoleFunction, cancellationToken);
         }
 
-        public Task<string> UpdateRoleRequestAsync(string name, string description, byte roleType)
+        public Task<string> UpdateRoleRequestAsync(string name, string description, List<byte> roleTypes)
         {
             var updateRoleFunction = new UpdateRoleFunction();
                 updateRoleFunction.Name = name;
                 updateRoleFunction.Description = description;
-                updateRoleFunction.RoleType = roleType;
+                updateRoleFunction.RoleTypes = roleTypes;
             
              return ContractHandler.SendRequestAsync(updateRoleFunction);
         }
 
-        public Task<TransactionReceipt> UpdateRoleRequestAndWaitForReceiptAsync(string name, string description, byte roleType, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> UpdateRoleRequestAndWaitForReceiptAsync(string name, string description, List<byte> roleTypes, CancellationTokenSource cancellationToken = null)
         {
             var updateRoleFunction = new UpdateRoleFunction();
                 updateRoleFunction.Name = name;
                 updateRoleFunction.Description = description;
-                updateRoleFunction.RoleType = roleType;
+                updateRoleFunction.RoleTypes = roleTypes;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(updateRoleFunction, cancellationToken);
         }

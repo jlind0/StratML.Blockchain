@@ -1,4 +1,6 @@
 {
     "solidity.compileUsingLocalVersion": "C:\\Users\\user\\OneDrive\\Documents\\GitHub\\StratML.Blockchain\\StratML.Blockchain.Contracts\\soljson-v0.8.23+commit.f704f362.js",
-    "solidity.defaultCompiler": "localFile"
+    "solidity.defaultCompiler": "localFile",
+    "solidity.packageDefaultDependenciesContractsDirectory": "",
+    "solidity.nodemodulespackage": "solc"
 }
