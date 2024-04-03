@@ -201,6 +201,39 @@ struct PerfomancePlanOrReportResponse{
     PerfomancePlanOrReportResponseBase base;
     StrategeticPlanCoreResponse strategeticPlanCore;
 }
+abstract contract OwnableOrSiblings is Ownable{
+    address public registry;
+    address[] public siblings;
+    constructor(address _registry) Ownable(msg.sender){
+        registry = _registry;
+    }
+    error AuthorizationError();
+    modifier onlyOwnerOrSibling(){
+        if(!isSibling(msg.sender))
+            revert AuthorizationError();
+        _;
+    }
+    function isSibling(address sibling) public view returns(bool){
+        if(registry == sibling)
+            return true;
+        if(sibling == owner())
+            return true;
+        for(uint i = 0; i < siblings.length; i++){
+            if(siblings[i] == sibling){
+                return true;
+            }
+        }
+        return false;
+    }
+    function addSibling(address sibling) public onlyOwner{
+        for(uint i = 0; i < siblings.length; i++){
+            if(siblings[i] == sibling){
+                return;
+            }
+        }
+        siblings.push(sibling);
+    }
+}
 contract StratMLRegistry{
     using BokkyPooBahsDateTimeLibrary for uint;
     address[] roles;
@@ -232,7 +265,7 @@ contract StratMLRegistry{
     function removeRole(address role) public{
        // Remove from roleMap
         Role roleInstance = Role(role);
-        require(roleInstance.owner() == msg.sender, "Only the owner of the role can remove it");
+        require(roleInstance.isSibling(msg.sender));
        // Remove from roles array
         _removeAddressFromArray(roles, role);
 
@@ -259,7 +292,7 @@ contract StratMLRegistry{
     }
     function updateRoleIndexer(address role, string memory oldName) public{
         Role roleInstance = Role(role);
-        require(roleInstance.owner() == msg.sender, "Only the owner of the role can update the indexer");
+        require(roleInstance.isSibling(msg.sender));
         bytes memory oldRoleName = abi.encodePacked(oldName);
         bytes memory newRoleName = abi.encodePacked(roleInstance.name());
         if(keccak256(oldRoleName) != keccak256(newRoleName)){
@@ -280,7 +313,7 @@ contract StratMLRegistry{
     }
     function removeStakeholder(address stakeholder) public{
         Stakeholder stakeholderInstance = Stakeholder(stakeholder);
-        require(stakeholderInstance.owner() == msg.sender, "Only the owner of the stakeholder can remove it");
+        require(stakeholderInstance.isSibling(msg.sender));
         // Remove from stakeholders array
         _removeAddressFromArray(stakeholders, stakeholder);
 
@@ -308,7 +341,7 @@ contract StratMLRegistry{
     }
     function updateStakeholderIndexer(address stakeholder, string memory oldName) public{
         Stakeholder stakeholderInstance = Stakeholder(stakeholder);
-        require(stakeholderInstance.owner() == msg.sender, "Only the owner of the stakeholder can update the indexer");
+        require(stakeholderInstance.isSibling(msg.sender));
         bytes memory oldStakeholderName = abi.encodePacked(oldName);
         bytes memory newStakeholderName = abi.encodePacked(stakeholderInstance.name());
         if(keccak256(oldStakeholderName) != keccak256(newStakeholderName)){
@@ -329,7 +362,7 @@ contract StratMLRegistry{
     }
     function removeOrganization(address organization) public{
         Organization organizationInstance = Organization(organization);
-        require(organizationInstance.owner() == msg.sender, "Only the owner of the organization can remove it");
+        require(organizationInstance.isSibling(msg.sender));
         // Remove from organizations array
         _removeAddressFromArray(organizations, organization);
 
@@ -357,7 +390,7 @@ contract StratMLRegistry{
     }
     function updateOrganizationIndexer(address organization, string memory oldName) public{
         Organization organizationInstance = Organization(organization);
-        require(organizationInstance.owner() == msg.sender, "Only the owner of the organization can update the indexer");
+        require(organizationInstance.isSibling(msg.sender));
         bytes memory oldOrganizationName = abi.encodePacked(oldName);
         bytes memory newOrganizationName = abi.encodePacked(organizationInstance.name());
         if(keccak256(oldOrganizationName) != keccak256(newOrganizationName)){
@@ -389,7 +422,7 @@ contract StratMLRegistry{
     }
     function removePerfomancePlanOrReport(address perfomancePlanOrReport) public{
         PerfomancePlanOrReport perfomancePlanOrReportInstance = PerfomancePlanOrReport(perfomancePlanOrReport);
-        require(perfomancePlanOrReportInstance.owner() == msg.sender, "Only the owner of the perfomancePlanOrReport can remove it");
+        require(perfomancePlanOrReportInstance.owner() == msg.sender);
         // Remove from perfomancePlanOrReports array
         _removeAddressFromArray(perfomancePlanOrReports, perfomancePlanOrReport);
 
@@ -422,7 +455,7 @@ contract StratMLRegistry{
     }
     function updatePerfomancePlanOrReportIndexer(address perfomancePlanOrReport, string memory oldName, uint oldStartDate, uint oldEndDate, uint oldPublicationDate) public{
         PerfomancePlanOrReport perfomancePlanOrReportInstance = PerfomancePlanOrReport(perfomancePlanOrReport);
-        require(perfomancePlanOrReportInstance.owner() == msg.sender, "Only the owner of the perfomancePlanOrReport can update the indexer");
+        require(perfomancePlanOrReportInstance.owner() == msg.sender);
         bytes memory oldPerfomancePlanOrReportName = abi.encodePacked(oldName);
         bytes memory newPerfomancePlanOrReportName = abi.encodePacked(perfomancePlanOrReportInstance.name());
         if(keccak256(oldPerfomancePlanOrReportName) != keccak256(newPerfomancePlanOrReportName)){
@@ -498,20 +531,23 @@ contract StratMLRegistry{
     }
 
 }
-contract Role is Ownable {
+contract Role is OwnableOrSiblings {
     string public name;
     string public description;
     RoleType[] roleTypes;
     address[] stakeholders;
     event StakeholderAdded(address indexed stakeholderAddress);
-    constructor(string memory _name, string memory _description, RoleType[] memory _roleTypes) Ownable(msg.sender){
+    constructor(address _registry, string memory _name, string memory _description, RoleType[] memory _roleTypes) OwnableOrSiblings(_registry) {
         name = _name;
         description = _description;
         for(uint i = 0; i < _roleTypes.length; i++){
             roleTypes.push(_roleTypes[i]);
         }
+        StratMLRegistry(_registry).addRole(address(this));
     }
-    function updateRole(string memory _name, string memory _description, RoleType[] memory _roleTypes) public onlyOwner{
+    function updateRole(string memory _name, string memory _description, RoleType[] memory _roleTypes) public onlyOwnerOrSibling{
+        bool nameChanged = keccak256(abi.encodePacked(name)) != keccak256(abi.encodePacked(_name));
+        string memory oldName = name;
         name = _name;
         description = _description;
         for(uint i = 0; i < roleTypes.length; i++){
@@ -520,8 +556,11 @@ contract Role is Ownable {
         for(uint i = 0; i < _roleTypes.length; i++){
             roleTypes.push(_roleTypes[i]);
         }
+        if(nameChanged){
+            StratMLRegistry(registry).updateRoleIndexer(address(this), oldName);
+        }
     }
-    function addStakeholder(address _stakeholderAddress) public onlyOwner{
+    function addStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < stakeholders.length; i++){
             if(stakeholders[i] == _stakeholderAddress){
                 return;
@@ -530,7 +569,7 @@ contract Role is Ownable {
         stakeholders.push(_stakeholderAddress);
         emit StakeholderAdded(_stakeholderAddress);
     }
-    function removeStakeholder(address _stakeholderAddress) public onlyOwner{
+    function removeStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < stakeholders.length; i++){
             if(stakeholders[i] == _stakeholderAddress){
                 stakeholders[i] = stakeholders[stakeholders.length - 1];
@@ -565,43 +604,37 @@ contract Role is Ownable {
         return stakeholders;
     }
 }
-contract Stakeholder is Ownable {
+contract Stakeholder is OwnableOrSiblings {
     string public name;
     StakeholderType public stakeholderType;
     address[] public roles; 
 
-    constructor(string memory _name, StakeholderType _stakeholderType, address[] memory _roles) Ownable(msg.sender) {
+    constructor(address _registry, string memory _name, StakeholderType _stakeholderType, address[] memory _roles) OwnableOrSiblings(_registry)  {
         name = _name;
         stakeholderType = _stakeholderType;
         roles = _roles;
 
         // Delegatecall to addStakeholder in each Role contract
         for(uint i = 0; i < _roles.length; i++) {
-            (bool success, ) = _roles[i].delegatecall(
-                abi.encodeWithSignature("addStakeholder(address)", address(this))
-            );
-            require(success, "Delegatecall to addStakeholder failed");
+            Role role = Role(_roles[i]);
+            role.addStakeholder(address(this));
         }
     }
 
-    function updateStakeholder(string memory _name, StakeholderType _stakeholderType, address[] memory _newRoles) public onlyOwner {
+    function updateStakeholder(string memory _name, StakeholderType _stakeholderType, address[] memory _newRoles) public onlyOwnerOrSibling {
         name = _name;
         stakeholderType = _stakeholderType;
 
         // Remove from old roles
         for(uint i = 0; i < roles.length; i++) {
-            (bool removeSuccess, ) = roles[i].delegatecall(
-                abi.encodeWithSignature("removeStakeholder(address)", address(this))
-            );
-            require(removeSuccess, "Delegatecall to removeStakeholder failed");
+            Role role = Role(roles[i]);
+            role.removeStakeholder(address(this));
         }
 
         // Add to new roles
         for(uint i = 0; i < _newRoles.length; i++) {
-            (bool addSuccess, ) = _newRoles[i].delegatecall(
-                abi.encodeWithSignature("addStakeholder(address)", address(this))
-            );
-            require(addSuccess, "Delegatecall to addStakeholder failed");
+            Role role = Role(_newRoles[i]);
+            role.addStakeholder(address(this));
         }
 
         roles = _newRoles;
@@ -628,23 +661,23 @@ contract Stakeholder is Ownable {
         return roles;
     }
 }
-contract Relationship is Ownable {
+contract Relationship is OwnableOrSiblings {
     string public name;
     string public description;
     RelationshipType public relationshipType;
     Reference[] references;
     event ReferenceAdded(EntityTypes entityType, address indexed identifier);
-    constructor(string memory _name, string memory _description, RelationshipType _relationshipType) Ownable(msg.sender){
+    constructor(address _registry, string memory _name, string memory _description, RelationshipType _relationshipType) OwnableOrSiblings(_registry){
         name = _name;
         description = _description;
         relationshipType = _relationshipType;
     }
-    function updateRelationship(string memory _name, string memory _description, RelationshipType _relationshipType) public onlyOwner{
+    function updateRelationship(string memory _name, string memory _description, RelationshipType _relationshipType) public onlyOwnerOrSibling{
         name = _name;
         description = _description;
         relationshipType = _relationshipType;
     }
-    function addReference(EntityTypes _entityType, address _identifier) public onlyOwner{
+    function addReference(EntityTypes _entityType, address _identifier) public onlyOwnerOrSibling{
         for(uint i = 0; i < references.length; i++){
             if(references[i].identifier == _identifier){
                 return;
@@ -653,7 +686,7 @@ contract Relationship is Ownable {
         references.push(Reference(_entityType, _identifier));
         emit ReferenceAdded(_entityType, _identifier);
     }
-    function removeReference(address _identifier) public onlyOwner{
+    function removeReference(address _identifier) public onlyOwnerOrSibling{
         for(uint i = 0; i < references.length; i++){
             if(references[i].identifier == _identifier){
                 references[i] = references[references.length - 1];
@@ -675,7 +708,7 @@ contract Relationship is Ownable {
         return response;
     }
 }
-contract PerformanceIndicator is Ownable{
+contract PerformanceIndicator is OwnableOrSiblings{
     string public sequenceIndicator;
     string public measurementDimension;
     string public unitOfMeasurement;
@@ -684,13 +717,13 @@ contract PerformanceIndicator is Ownable{
     string public otherInformation;
     ValueChainStageType public vauleChangeState;
     PerfomanceIndicatorType public perfomanceIndicator;
-    constructor(string memory _sequenceIndicator, string memory _measurementDimension, string memory _unitOfMeasurement, PerfomanceIndicatorType _perfomanceIndicator) Ownable(msg.sender){
+    constructor(address _registry, string memory _sequenceIndicator, string memory _measurementDimension, string memory _unitOfMeasurement, PerfomanceIndicatorType _perfomanceIndicator) OwnableOrSiblings(_registry){
         sequenceIndicator = _sequenceIndicator;
         measurementDimension = _measurementDimension;
         unitOfMeasurement = _unitOfMeasurement;
         perfomanceIndicator = _perfomanceIndicator;
     }
-    function addRelationship(address _relationshipAddress) public onlyOwner{
+    function addRelationship(address _relationshipAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < relationships.length; i++){
             if(relationships[i] == _relationshipAddress){
                 return;
@@ -701,7 +734,7 @@ contract PerformanceIndicator is Ownable{
     function getRelationships() public view returns(address[] memory){
         return relationships;
     }
-    function removeRelationship(address _relationshipAddress) public onlyOwner{
+    function removeRelationship(address _relationshipAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < relationships.length; i++){
             if(relationships[i] == _relationshipAddress){
                 relationships[i] = relationships[relationships.length - 1];
@@ -710,7 +743,7 @@ contract PerformanceIndicator is Ownable{
             }
         }
     }
-    function addMeasurementInstance(MeasurementInstance memory _measurementInstance) public onlyOwner{
+    function addMeasurementInstance(MeasurementInstance memory _measurementInstance) public onlyOwnerOrSibling{
         measurementInstances.push();
         for(uint i = 0; i < _measurementInstance.actualResults.length; i++){
             measurementInstances[measurementInstances.length - 1].actualResults.push();
@@ -731,8 +764,8 @@ contract PerformanceIndicator is Ownable{
             measurementInstances[measurementInstances.length - 1].targetResults[i].description = _measurementInstance.targetResults[i].description;
         }
     }
-    function removeMeasurementInstance(uint index) public onlyOwner{
-       require(index < measurementInstances.length, "Index out of bounds");
+    function removeMeasurementInstance(uint index) public onlyOwnerOrSibling{
+       require(index < measurementInstances.length);
 
         // Swap the element at index with the last element if index is not the last element
         if (index < measurementInstances.length - 1) {
@@ -806,14 +839,14 @@ contract PerformanceIndicator is Ownable{
         response.perfomanceIndicator = perfomanceIndicator;
         return response;
     }
-    function updatePerformanceIndicator(string memory _sequenceIndicator, string memory _measurementDimension, string memory _unitOfMeasurement, PerfomanceIndicatorType _perfomanceIndicator) public onlyOwner{
+    function updatePerformanceIndicator(string memory _sequenceIndicator, string memory _measurementDimension, string memory _unitOfMeasurement, PerfomanceIndicatorType _perfomanceIndicator) public onlyOwnerOrSibling{
         sequenceIndicator = _sequenceIndicator;
         measurementDimension = _measurementDimension;
         unitOfMeasurement = _unitOfMeasurement;
         perfomanceIndicator = _perfomanceIndicator;
     }
 }
-contract Objective is Ownable{
+contract Objective is OwnableOrSiblings{
     string public name;
     string public description;
     string public sequenceIndicator;
@@ -821,12 +854,12 @@ contract Objective is Ownable{
     string public otherInformation;
     address[] perfomanceIndicators;
     event StakeholderAdded(address indexed stakeholderAddress);
-    constructor(string memory _name, string memory _description, string memory _sequenceIndicator) Ownable(msg.sender){
+    constructor(address _registry, string memory _name, string memory _description, string memory _sequenceIndicator) OwnableOrSiblings(_registry){
         name = _name;
         description = _description;
         sequenceIndicator = _sequenceIndicator;
     }
-    function addStakeholder(address _stakeholderAddress) public onlyOwner{
+    function addStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < stakeholders.length; i++){
             if(stakeholders[i] == _stakeholderAddress){
                 return;
@@ -835,7 +868,7 @@ contract Objective is Ownable{
         stakeholders.push(_stakeholderAddress);
         emit StakeholderAdded(_stakeholderAddress);
     }
-    function removeStakeholder(address _stakeholderAddress) public onlyOwner{
+    function removeStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < stakeholders.length; i++){
             if(stakeholders[i] == _stakeholderAddress){
                 stakeholders[i] = stakeholders[stakeholders.length - 1];
@@ -847,7 +880,7 @@ contract Objective is Ownable{
     function getStakeholders() public view returns(address[] memory){
         return stakeholders;
     }
-    function addPerformanceIndicator(address _performanceIndicatorAddress) public onlyOwner{
+    function addPerformanceIndicator(address _performanceIndicatorAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < perfomanceIndicators.length; i++){
             if(perfomanceIndicators[i] == _performanceIndicatorAddress){
                 return;
@@ -855,7 +888,7 @@ contract Objective is Ownable{
         }
         perfomanceIndicators.push(_performanceIndicatorAddress);
     }
-    function removePerformanceIndicator(address _performanceIndicatorAddress) public onlyOwner{
+    function removePerformanceIndicator(address _performanceIndicatorAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < perfomanceIndicators.length; i++){
             if(perfomanceIndicators[i] == _performanceIndicatorAddress){
                 perfomanceIndicators[i] = perfomanceIndicators[perfomanceIndicators.length - 1];
@@ -893,7 +926,7 @@ contract Objective is Ownable{
         return response;
     }
 }
-contract Goal is Ownable{
+contract Goal is OwnableOrSiblings{
     string public name;
     string public description;
     string public sequenceIndicator;
@@ -901,12 +934,12 @@ contract Goal is Ownable{
     string public otherInformation;
     address[] objectives;
     event StakeholderAdded(address indexed stakeholderAddress);
-    constructor(string memory _name, string memory _description, string memory _sequenceIndicator) Ownable(msg.sender){
+    constructor(address _registry, string memory _name, string memory _description, string memory _sequenceIndicator) OwnableOrSiblings(_registry){
         name = _name;
         description = _description;
         sequenceIndicator = _sequenceIndicator;
     }
-    function addStakeholder(address _stakeholderAddress) public onlyOwner{
+    function addStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < stakeholders.length; i++){
             if(stakeholders[i] == _stakeholderAddress){
                 return;
@@ -915,7 +948,7 @@ contract Goal is Ownable{
         stakeholders.push(_stakeholderAddress);
         emit StakeholderAdded(_stakeholderAddress);
     }
-    function removeStakeholder(address _stakeholderAddress) public onlyOwner{
+    function removeStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < stakeholders.length; i++){
             if(stakeholders[i] == _stakeholderAddress){
                 stakeholders[i] = stakeholders[stakeholders.length - 1];
@@ -924,7 +957,7 @@ contract Goal is Ownable{
             }
         }
     }
-    function addObjective(address _objectiveAddress) public onlyOwner{
+    function addObjective(address _objectiveAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < objectives.length; i++){
             if(objectives[i] == _objectiveAddress){
                 return;
@@ -932,7 +965,7 @@ contract Goal is Ownable{
         }
         objectives.push(_objectiveAddress);
     }
-    function removeObjective(address _objectiveAddress) public onlyOwner{
+    function removeObjective(address _objectiveAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < objectives.length; i++){
             if(objectives[i] == _objectiveAddress){
                 objectives[i] = objectives[objectives.length - 1];
@@ -968,18 +1001,18 @@ contract Goal is Ownable{
         return response;
     }
 }
-contract Organization is Ownable{
+contract Organization is OwnableOrSiblings{
     string public name;
     string public description;
     string public acryonym;
     address[] stakeholders;
     event StakeholderAdded(address indexed stakeholderAddress);
-    constructor(string memory _name, string memory _description, string memory _acryonym) Ownable(msg.sender){
+    constructor(address _registry, string memory _name, string memory _description, string memory _acryonym) OwnableOrSiblings(_registry){
         name = _name;
         description = _description;
         acryonym = _acryonym;
     }
-    function addStakeholder(address _stakeholderAddress) public onlyOwner{
+    function addStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < stakeholders.length; i++){
             if(stakeholders[i] == _stakeholderAddress){
                 return;
@@ -988,7 +1021,7 @@ contract Organization is Ownable{
         stakeholders.push(_stakeholderAddress);
         emit StakeholderAdded(_stakeholderAddress);
     }
-    function removeStakeholder(address _stakeholderAddress) public onlyOwner{
+    function removeStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < stakeholders.length; i++){
             if(stakeholders[i] == _stakeholderAddress){
                 stakeholders[i] = stakeholders[stakeholders.length - 1];
@@ -1027,12 +1060,12 @@ contract Organization is Ownable{
         return response;
     }
 }
-contract Mission is Ownable{
+contract Mission is OwnableOrSiblings{
     string public description;
-    constructor(string memory _description) Ownable(msg.sender){
+    constructor(address _registry, string memory _description) OwnableOrSiblings(_registry){
         description = _description;
     }
-    function updateMission(string memory _description) public onlyOwner{
+    function updateMission(string memory _description) public onlyOwnerOrSibling{
         description = _description;
     }
     function getMissionResponse() public view returns(MissionResponse memory){
@@ -1042,12 +1075,12 @@ contract Mission is Ownable{
         return response;
     }
 }
-contract Vision is Ownable{
+contract Vision is OwnableOrSiblings{
     string public description;
-    constructor(string memory _description) Ownable(msg.sender){
+    constructor(address _registry, string memory _description) OwnableOrSiblings(_registry){
         description = _description;
     }
-    function updateVision(string memory _description) public onlyOwner{
+    function updateVision(string memory _description) public onlyOwnerOrSibling{
         description = _description;
     }
     function getVisionResponse() public view returns(VisionResponse memory){
@@ -1057,18 +1090,18 @@ contract Vision is Ownable{
         return response;
     }
 }
-contract AdministrativeInformation is Ownable{
+contract AdministrativeInformation is OwnableOrSiblings{
     uint public startDate;
     uint public endDate;
     uint public publicationDate;
     string public source;
-    constructor(uint _startDate, uint _endDate, uint _publicationDate, string memory _source) Ownable(msg.sender){
+    constructor(address _registry, uint _startDate, uint _endDate, uint _publicationDate, string memory _source) OwnableOrSiblings(_registry){
         startDate = _startDate;
         endDate = _endDate;
         publicationDate = _publicationDate;
         source = _source;
     }
-    function updateAdministrativeInformation(uint _startDate, uint _endDate, uint _publicationDate, string memory _source) public onlyOwner{
+    function updateAdministrativeInformation(uint _startDate, uint _endDate, uint _publicationDate, string memory _source) public onlyOwnerOrSibling{
         startDate = _startDate;
         endDate = _endDate;
         publicationDate = _publicationDate;
@@ -1084,18 +1117,18 @@ contract AdministrativeInformation is Ownable{
         return response;
     }
 }
-contract ContactInformation is Ownable{
+contract ContactInformation is OwnableOrSiblings{
     string public givenName;
     string public surname;
     string public phoneNumber;
     string public emailAddress;
-    constructor(string memory _givenName, string memory _surname, string memory _phoneNumber, string memory _emailAddress) Ownable(msg.sender){
+    constructor(address _registry, string memory _givenName, string memory _surname, string memory _phoneNumber, string memory _emailAddress) OwnableOrSiblings(_registry){
         givenName = _givenName;
         surname = _surname;
         phoneNumber = _phoneNumber;
         emailAddress = _emailAddress;
     }
-    function updateContactInformation(string memory _givenName, string memory _surname, string memory _phoneNumber, string memory _emailAddress) public onlyOwner{
+    function updateContactInformation(string memory _givenName, string memory _surname, string memory _phoneNumber, string memory _emailAddress) public onlyOwnerOrSibling{
         givenName = _givenName;
         surname = _surname;
         phoneNumber = _phoneNumber;
@@ -1112,34 +1145,34 @@ contract ContactInformation is Ownable{
     }
 }
 contract PerfomancePlanOrReport is Ownable{
+    struct StrategicPlan {
+        address vision;
+        address mission;
+        Value[] values;
+        address[] goals;
+    }
+    address public registry;
     string public name;
     string public description;
     string public otherInformation;
     address[] organizations;
-    address vision;
-    address mission;
-    Value[] values;
-    address[] goals;
-    AdministrativeInformation administrativeInformation;
-    ContactInformation sumbitter;
+    StrategicPlan private strategeticPlan;
+    address administrativeInformation;
+    address sumbitter;
     ReportType reportType;
-    event OrganizationAdded(address indexed organizationAddress);
-    constructor(string memory _name, string memory _description, ReportType _reportType) Ownable(msg.sender){
+    constructor(address _registry, string memory _name, string memory _description, ReportType _reportType) Ownable(msg.sender){
+        registry = _registry; 
         name = _name;
         description = _description;
         reportType = _reportType;
     }
-    function updateVision(string memory _description) public onlyOwner{
-        if(address(vision) == address(0))
-            vision = address(new Vision(_description));
-        else
-            Vision(vision).updateVision(_description);
+    function updateVision(address _vision) public onlyOwner{
+        require(strategeticPlan.vision == address(0));
+        strategeticPlan.vision = _vision;
     }
-    function updateMission(string memory _description) public onlyOwner{
-        if(address(mission) == address(0))
-            mission = address(new Mission(_description));
-        else
-            Mission(mission).updateMission(_description);
+    function setMission(address _mission) public onlyOwner{
+        require(strategeticPlan.mission == address(0));
+        strategeticPlan.mission = _mission;
     }
     function addOrganization(address _organizationAddress) public onlyOwner{
         for(uint i = 0; i < organizations.length; i++){
@@ -1148,7 +1181,6 @@ contract PerfomancePlanOrReport is Ownable{
             }
         }
         organizations.push(_organizationAddress);
-        emit OrganizationAdded(_organizationAddress);
     }
     function removeOrganization(address _organizationAddress) public onlyOwner{
         for(uint i = 0; i < organizations.length; i++){
@@ -1160,66 +1192,65 @@ contract PerfomancePlanOrReport is Ownable{
         }
     }
     function addValue(string memory _name, string memory _description) public onlyOwner{
-        values.push(Value(_name, _description));
+        strategeticPlan.values.push(Value(_name, _description));
     }
+    error OutOfBounds();
     function removeValue(uint index) public onlyOwner{
-        require(index < values.length, "Index out of bounds");
+        if(index >= strategeticPlan.values.length) revert OutOfBounds();
 
         // Swap the element at index with the last element if index is not the last element
-        if (index < values.length - 1) {
-            values[index] = values[values.length - 1];
+        if (index < strategeticPlan.values.length - 1) {
+            strategeticPlan.values[index] = strategeticPlan.values[strategeticPlan.values.length - 1];
         }
         // Remove the last element
-        values.pop();
+        strategeticPlan.values.pop();
     }
     function updateValue(uint index, string memory _name, string memory _description) public onlyOwner{
-        require(index < values.length, "Index out of bounds");
-        values[index].name = _name;
-        values[index].description = _description;
+        if(index >= strategeticPlan.values.length) revert OutOfBounds();
+        strategeticPlan.values[index].name = _name;
+        strategeticPlan.values[index].description = _description;
     }
     function addGoal(address _goalAddress) public onlyOwner{
-        for(uint i = 0; i < goals.length; i++){
-            if(goals[i] == _goalAddress){
+        for(uint i = 0; i < strategeticPlan.goals.length; i++){
+            if(strategeticPlan.goals[i] == _goalAddress){
                 return;
             }
         }
-        goals.push(_goalAddress);
+        strategeticPlan.goals.push(_goalAddress);
     }
     function removeGoal(address _goalAddress) public onlyOwner{
-        for(uint i = 0; i < goals.length; i++){
-            if(goals[i] == _goalAddress){
-                goals[i] = goals[goals.length - 1];
-                goals.pop();
+        for(uint i = 0; i < strategeticPlan.goals.length; i++){
+            if(strategeticPlan.goals[i] == _goalAddress){
+                strategeticPlan.goals[i] = strategeticPlan.goals[strategeticPlan.goals.length - 1];
+                strategeticPlan.goals.pop();
                 break;
             }
         }
     }
-    function updateAdministrativeInformation(uint _startDate, uint _endDate, uint _publicationDate, string memory _source) public onlyOwner{
-        if(address(administrativeInformation) == address(0))
-            administrativeInformation = new AdministrativeInformation(_startDate, _endDate, _publicationDate, _source);
-        else
-            administrativeInformation.updateAdministrativeInformation(_startDate, _endDate, _publicationDate, _source);
+    function setAdministrativeInformation(address _adminInfo) public onlyOwner{
+        require(administrativeInformation == address(0));
+        administrativeInformation = _adminInfo;
     }
-    function updateSumbitter(string memory _givenName, string memory _surname, string memory _phoneNumber, string memory _emailAddress) public onlyOwner{
-        if(address(sumbitter) == address(0))
-            sumbitter = new ContactInformation(_givenName, _surname, _phoneNumber, _emailAddress);
-        else
-            sumbitter.updateContactInformation(_givenName, _surname, _phoneNumber, _emailAddress);
+    function setSumbitter(address _submitter) public onlyOwner{
+        require(sumbitter == address(0));
+        sumbitter = _submitter;
     }
     function getOrganizations() public view returns(address[] memory){
         return organizations;
     }
     function getValues() public view returns(Value[] memory){
-        return values;
+        return strategeticPlan.values;
     }
     function getGoals() public view returns(address[] memory){
-        return goals;
+        return strategeticPlan.goals;
     }
     function getAdministrativeInformation() public view returns(AdministrativeInformationResponse memory){
-        return administrativeInformation.getAdministrativeInformationResponse();
+        require(administrativeInformation != address(0));
+        return AdministrativeInformation(administrativeInformation).getAdministrativeInformationResponse();
     }
     function getSumbitter() public view returns(ContactInformationResponse memory){
-        return sumbitter.getContactInformationResponse();
+        require(sumbitter != address(0));
+        return ContactInformation(sumbitter).getContactInformationResponse();
     }
     function getPerfomancePlanOrReportResponseBase() public view returns(PerfomancePlanOrReportResponseBase memory){
         PerfomancePlanOrReportResponseBase memory response;
@@ -1228,10 +1259,10 @@ contract PerfomancePlanOrReport is Ownable{
         response.description = description;
         response.otherInformation = otherInformation;
         response.strategeticPlanCore = getStrategeticPlanCoreResponseBase();
-        if(address(administrativeInformation) != address(0))
-            response.administrativeInformation = administrativeInformation.getAdministrativeInformationResponse();
-        if(address(sumbitter) != address(0))
-            response.sumbitter = sumbitter.getContactInformationResponse();
+        if(administrativeInformation != address(0))
+            response.administrativeInformation = AdministrativeInformation(administrativeInformation).getAdministrativeInformationResponse();
+        if(sumbitter != address(0))
+            response.sumbitter = ContactInformation(sumbitter).getContactInformationResponse();
         response.reportType = reportType;
         return response;
     }
@@ -1244,12 +1275,12 @@ contract PerfomancePlanOrReport is Ownable{
     function getStrategeticPlanCoreResponseBase() public view returns(StrategeticPlanCoreResponseBase memory){
         StrategeticPlanCoreResponseBase memory response;
         response.organizations = organizations;
-        if(vision != address(0))
-            response.vision = Vision(vision).getVisionResponse();
-        if(mission != address(0))
-            response.mission = Mission(mission).getMissionResponse();
-        response.values = values;
-        response.goals = goals;
+        if(strategeticPlan.vision != address(0))
+            response.vision = Vision(strategeticPlan.vision).getVisionResponse();
+        if(strategeticPlan.mission != address(0))
+            response.mission = Mission(strategeticPlan.mission).getMissionResponse();
+        response.values = strategeticPlan.values;
+        response.goals = strategeticPlan.goals;
         return response;
     }
     function getStrategeticPlanCoreResponse() public view returns(StrategeticPlanCoreResponse memory){
@@ -1260,12 +1291,12 @@ contract PerfomancePlanOrReport is Ownable{
             Organization organization = Organization(organizations[i]);
             response.organizations[i] = organization.getOrganizationResponseBase();
         }
-        response.goals = new GoalResponseBase[](goals.length);
-        for(uint i = 0; i < goals.length; i++){
-            Goal goal = Goal(goals[i]);
+        response.goals = new GoalResponseBase[](strategeticPlan.goals.length);
+        for(uint i = 0; i < strategeticPlan.goals.length; i++){
+            Goal goal = Goal(strategeticPlan.goals[i]);
             response.goals[i] = goal.getGoalResponseBase();
         }
         return response;
     }
-
+    
 }

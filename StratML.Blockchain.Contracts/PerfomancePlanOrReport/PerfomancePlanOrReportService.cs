@@ -264,6 +264,17 @@ namespace StratML.Contracts.PerfomancePlanOrReport
             return ContractHandler.QueryAsync<OwnerFunction, string>(null, blockParameter);
         }
 
+        public Task<string> RegistryQueryAsync(RegistryFunction registryFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<RegistryFunction, string>(registryFunction, blockParameter);
+        }
+
+        
+        public Task<string> RegistryQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<RegistryFunction, string>(null, blockParameter);
+        }
+
         public Task<string> RemoveGoalRequestAsync(RemoveGoalFunction removeGoalFunction)
         {
              return ContractHandler.SendRequestAsync(removeGoalFunction);
@@ -362,6 +373,84 @@ namespace StratML.Contracts.PerfomancePlanOrReport
              return ContractHandler.SendRequestAndWaitForReceiptAsync<RenounceOwnershipFunction>(null, cancellationToken);
         }
 
+        public Task<string> SetAdministrativeInformationRequestAsync(SetAdministrativeInformationFunction setAdministrativeInformationFunction)
+        {
+             return ContractHandler.SendRequestAsync(setAdministrativeInformationFunction);
+        }
+
+        public Task<TransactionReceipt> SetAdministrativeInformationRequestAndWaitForReceiptAsync(SetAdministrativeInformationFunction setAdministrativeInformationFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setAdministrativeInformationFunction, cancellationToken);
+        }
+
+        public Task<string> SetAdministrativeInformationRequestAsync(string adminInfo)
+        {
+            var setAdministrativeInformationFunction = new SetAdministrativeInformationFunction();
+                setAdministrativeInformationFunction.AdminInfo = adminInfo;
+            
+             return ContractHandler.SendRequestAsync(setAdministrativeInformationFunction);
+        }
+
+        public Task<TransactionReceipt> SetAdministrativeInformationRequestAndWaitForReceiptAsync(string adminInfo, CancellationTokenSource cancellationToken = null)
+        {
+            var setAdministrativeInformationFunction = new SetAdministrativeInformationFunction();
+                setAdministrativeInformationFunction.AdminInfo = adminInfo;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setAdministrativeInformationFunction, cancellationToken);
+        }
+
+        public Task<string> SetMissionRequestAsync(SetMissionFunction setMissionFunction)
+        {
+             return ContractHandler.SendRequestAsync(setMissionFunction);
+        }
+
+        public Task<TransactionReceipt> SetMissionRequestAndWaitForReceiptAsync(SetMissionFunction setMissionFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setMissionFunction, cancellationToken);
+        }
+
+        public Task<string> SetMissionRequestAsync(string mission)
+        {
+            var setMissionFunction = new SetMissionFunction();
+                setMissionFunction.Mission = mission;
+            
+             return ContractHandler.SendRequestAsync(setMissionFunction);
+        }
+
+        public Task<TransactionReceipt> SetMissionRequestAndWaitForReceiptAsync(string mission, CancellationTokenSource cancellationToken = null)
+        {
+            var setMissionFunction = new SetMissionFunction();
+                setMissionFunction.Mission = mission;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setMissionFunction, cancellationToken);
+        }
+
+        public Task<string> SetSumbitterRequestAsync(SetSumbitterFunction setSumbitterFunction)
+        {
+             return ContractHandler.SendRequestAsync(setSumbitterFunction);
+        }
+
+        public Task<TransactionReceipt> SetSumbitterRequestAndWaitForReceiptAsync(SetSumbitterFunction setSumbitterFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setSumbitterFunction, cancellationToken);
+        }
+
+        public Task<string> SetSumbitterRequestAsync(string submitter)
+        {
+            var setSumbitterFunction = new SetSumbitterFunction();
+                setSumbitterFunction.Submitter = submitter;
+            
+             return ContractHandler.SendRequestAsync(setSumbitterFunction);
+        }
+
+        public Task<TransactionReceipt> SetSumbitterRequestAndWaitForReceiptAsync(string submitter, CancellationTokenSource cancellationToken = null)
+        {
+            var setSumbitterFunction = new SetSumbitterFunction();
+                setSumbitterFunction.Submitter = submitter;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setSumbitterFunction, cancellationToken);
+        }
+
         public Task<string> TransferOwnershipRequestAsync(TransferOwnershipFunction transferOwnershipFunction)
         {
              return ContractHandler.SendRequestAsync(transferOwnershipFunction);
@@ -386,96 +475,6 @@ namespace StratML.Contracts.PerfomancePlanOrReport
                 transferOwnershipFunction.NewOwner = newOwner;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(transferOwnershipFunction, cancellationToken);
-        }
-
-        public Task<string> UpdateAdministrativeInformationRequestAsync(UpdateAdministrativeInformationFunction updateAdministrativeInformationFunction)
-        {
-             return ContractHandler.SendRequestAsync(updateAdministrativeInformationFunction);
-        }
-
-        public Task<TransactionReceipt> UpdateAdministrativeInformationRequestAndWaitForReceiptAsync(UpdateAdministrativeInformationFunction updateAdministrativeInformationFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateAdministrativeInformationFunction, cancellationToken);
-        }
-
-        public Task<string> UpdateAdministrativeInformationRequestAsync(BigInteger startDate, BigInteger endDate, BigInteger publicationDate, string source)
-        {
-            var updateAdministrativeInformationFunction = new UpdateAdministrativeInformationFunction();
-                updateAdministrativeInformationFunction.StartDate = startDate;
-                updateAdministrativeInformationFunction.EndDate = endDate;
-                updateAdministrativeInformationFunction.PublicationDate = publicationDate;
-                updateAdministrativeInformationFunction.Source = source;
-            
-             return ContractHandler.SendRequestAsync(updateAdministrativeInformationFunction);
-        }
-
-        public Task<TransactionReceipt> UpdateAdministrativeInformationRequestAndWaitForReceiptAsync(BigInteger startDate, BigInteger endDate, BigInteger publicationDate, string source, CancellationTokenSource cancellationToken = null)
-        {
-            var updateAdministrativeInformationFunction = new UpdateAdministrativeInformationFunction();
-                updateAdministrativeInformationFunction.StartDate = startDate;
-                updateAdministrativeInformationFunction.EndDate = endDate;
-                updateAdministrativeInformationFunction.PublicationDate = publicationDate;
-                updateAdministrativeInformationFunction.Source = source;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateAdministrativeInformationFunction, cancellationToken);
-        }
-
-        public Task<string> UpdateMissionRequestAsync(UpdateMissionFunction updateMissionFunction)
-        {
-             return ContractHandler.SendRequestAsync(updateMissionFunction);
-        }
-
-        public Task<TransactionReceipt> UpdateMissionRequestAndWaitForReceiptAsync(UpdateMissionFunction updateMissionFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateMissionFunction, cancellationToken);
-        }
-
-        public Task<string> UpdateMissionRequestAsync(string description)
-        {
-            var updateMissionFunction = new UpdateMissionFunction();
-                updateMissionFunction.Description = description;
-            
-             return ContractHandler.SendRequestAsync(updateMissionFunction);
-        }
-
-        public Task<TransactionReceipt> UpdateMissionRequestAndWaitForReceiptAsync(string description, CancellationTokenSource cancellationToken = null)
-        {
-            var updateMissionFunction = new UpdateMissionFunction();
-                updateMissionFunction.Description = description;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateMissionFunction, cancellationToken);
-        }
-
-        public Task<string> UpdateSumbitterRequestAsync(UpdateSumbitterFunction updateSumbitterFunction)
-        {
-             return ContractHandler.SendRequestAsync(updateSumbitterFunction);
-        }
-
-        public Task<TransactionReceipt> UpdateSumbitterRequestAndWaitForReceiptAsync(UpdateSumbitterFunction updateSumbitterFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateSumbitterFunction, cancellationToken);
-        }
-
-        public Task<string> UpdateSumbitterRequestAsync(string givenName, string surname, string phoneNumber, string emailAddress)
-        {
-            var updateSumbitterFunction = new UpdateSumbitterFunction();
-                updateSumbitterFunction.GivenName = givenName;
-                updateSumbitterFunction.Surname = surname;
-                updateSumbitterFunction.PhoneNumber = phoneNumber;
-                updateSumbitterFunction.EmailAddress = emailAddress;
-            
-             return ContractHandler.SendRequestAsync(updateSumbitterFunction);
-        }
-
-        public Task<TransactionReceipt> UpdateSumbitterRequestAndWaitForReceiptAsync(string givenName, string surname, string phoneNumber, string emailAddress, CancellationTokenSource cancellationToken = null)
-        {
-            var updateSumbitterFunction = new UpdateSumbitterFunction();
-                updateSumbitterFunction.GivenName = givenName;
-                updateSumbitterFunction.Surname = surname;
-                updateSumbitterFunction.PhoneNumber = phoneNumber;
-                updateSumbitterFunction.EmailAddress = emailAddress;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateSumbitterFunction, cancellationToken);
         }
 
         public Task<string> UpdateValueRequestAsync(UpdateValueFunction updateValueFunction)
@@ -518,18 +517,18 @@ namespace StratML.Contracts.PerfomancePlanOrReport
              return ContractHandler.SendRequestAndWaitForReceiptAsync(updateVisionFunction, cancellationToken);
         }
 
-        public Task<string> UpdateVisionRequestAsync(string description)
+        public Task<string> UpdateVisionRequestAsync(string vision)
         {
             var updateVisionFunction = new UpdateVisionFunction();
-                updateVisionFunction.Description = description;
+                updateVisionFunction.Vision = vision;
             
              return ContractHandler.SendRequestAsync(updateVisionFunction);
         }
 
-        public Task<TransactionReceipt> UpdateVisionRequestAndWaitForReceiptAsync(string description, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> UpdateVisionRequestAndWaitForReceiptAsync(string vision, CancellationTokenSource cancellationToken = null)
         {
             var updateVisionFunction = new UpdateVisionFunction();
-                updateVisionFunction.Description = description;
+                updateVisionFunction.Vision = vision;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(updateVisionFunction, cancellationToken);
         }

@@ -74,6 +74,32 @@ namespace StratML.Contracts.Objective
              return ContractHandler.SendRequestAndWaitForReceiptAsync(addPerformanceIndicatorFunction, cancellationToken);
         }
 
+        public Task<string> AddSiblingRequestAsync(AddSiblingFunction addSiblingFunction)
+        {
+             return ContractHandler.SendRequestAsync(addSiblingFunction);
+        }
+
+        public Task<TransactionReceipt> AddSiblingRequestAndWaitForReceiptAsync(AddSiblingFunction addSiblingFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(addSiblingFunction, cancellationToken);
+        }
+
+        public Task<string> AddSiblingRequestAsync(string sibling)
+        {
+            var addSiblingFunction = new AddSiblingFunction();
+                addSiblingFunction.Sibling = sibling;
+            
+             return ContractHandler.SendRequestAsync(addSiblingFunction);
+        }
+
+        public Task<TransactionReceipt> AddSiblingRequestAndWaitForReceiptAsync(string sibling, CancellationTokenSource cancellationToken = null)
+        {
+            var addSiblingFunction = new AddSiblingFunction();
+                addSiblingFunction.Sibling = sibling;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(addSiblingFunction, cancellationToken);
+        }
+
         public Task<string> AddStakeholderRequestAsync(AddStakeholderFunction addStakeholderFunction)
         {
              return ContractHandler.SendRequestAsync(addStakeholderFunction);
@@ -153,6 +179,20 @@ namespace StratML.Contracts.Objective
             return ContractHandler.QueryAsync<GetStakeholdersFunction, List<string>>(null, blockParameter);
         }
 
+        public Task<bool> IsSiblingQueryAsync(IsSiblingFunction isSiblingFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<IsSiblingFunction, bool>(isSiblingFunction, blockParameter);
+        }
+
+        
+        public Task<bool> IsSiblingQueryAsync(string sibling, BlockParameter blockParameter = null)
+        {
+            var isSiblingFunction = new IsSiblingFunction();
+                isSiblingFunction.Sibling = sibling;
+            
+            return ContractHandler.QueryAsync<IsSiblingFunction, bool>(isSiblingFunction, blockParameter);
+        }
+
         public Task<string> NameQueryAsync(NameFunction nameFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<NameFunction, string>(nameFunction, blockParameter);
@@ -184,6 +224,17 @@ namespace StratML.Contracts.Objective
         public Task<string> OwnerQueryAsync(BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<OwnerFunction, string>(null, blockParameter);
+        }
+
+        public Task<string> RegistryQueryAsync(RegistryFunction registryFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<RegistryFunction, string>(registryFunction, blockParameter);
+        }
+
+        
+        public Task<string> RegistryQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<RegistryFunction, string>(null, blockParameter);
         }
 
         public Task<string> RemovePerformanceIndicatorRequestAsync(RemovePerformanceIndicatorFunction removePerformanceIndicatorFunction)
@@ -267,6 +318,20 @@ namespace StratML.Contracts.Objective
         public Task<string> SequenceIndicatorQueryAsync(BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<SequenceIndicatorFunction, string>(null, blockParameter);
+        }
+
+        public Task<string> SiblingsQueryAsync(SiblingsFunction siblingsFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<SiblingsFunction, string>(siblingsFunction, blockParameter);
+        }
+
+        
+        public Task<string> SiblingsQueryAsync(BigInteger returnValue1, BlockParameter blockParameter = null)
+        {
+            var siblingsFunction = new SiblingsFunction();
+                siblingsFunction.ReturnValue1 = returnValue1;
+            
+            return ContractHandler.QueryAsync<SiblingsFunction, string>(siblingsFunction, blockParameter);
         }
 
         public Task<string> TransferOwnershipRequestAsync(TransferOwnershipFunction transferOwnershipFunction)

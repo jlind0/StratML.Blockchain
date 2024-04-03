@@ -10,39 +10,39 @@ using Nethereum.Contracts.CQS;
 using Nethereum.Contracts.ContractHandlers;
 using Nethereum.Contracts;
 using System.Threading;
-using StratML.Contracts.Mission.ContractDefinition;
+using StratML.Contracts.OwnableOrSiblings.ContractDefinition;
 
-namespace StratML.Contracts.Mission
+namespace StratML.Contracts.OwnableOrSiblings
 {
-    public partial class MissionService
+    public partial class OwnableOrSiblingsService
     {
-        public static Task<TransactionReceipt> DeployContractAndWaitForReceiptAsync(Nethereum.Web3.Web3 web3, MissionDeployment missionDeployment, CancellationTokenSource cancellationTokenSource = null)
+        public static Task<TransactionReceipt> DeployContractAndWaitForReceiptAsync(Nethereum.Web3.Web3 web3, OwnableOrSiblingsDeployment ownableOrSiblingsDeployment, CancellationTokenSource cancellationTokenSource = null)
         {
-            return web3.Eth.GetContractDeploymentHandler<MissionDeployment>().SendRequestAndWaitForReceiptAsync(missionDeployment, cancellationTokenSource);
+            return web3.Eth.GetContractDeploymentHandler<OwnableOrSiblingsDeployment>().SendRequestAndWaitForReceiptAsync(ownableOrSiblingsDeployment, cancellationTokenSource);
         }
 
-        public static Task<string> DeployContractAsync(Nethereum.Web3.Web3 web3, MissionDeployment missionDeployment)
+        public static Task<string> DeployContractAsync(Nethereum.Web3.Web3 web3, OwnableOrSiblingsDeployment ownableOrSiblingsDeployment)
         {
-            return web3.Eth.GetContractDeploymentHandler<MissionDeployment>().SendRequestAsync(missionDeployment);
+            return web3.Eth.GetContractDeploymentHandler<OwnableOrSiblingsDeployment>().SendRequestAsync(ownableOrSiblingsDeployment);
         }
 
-        public static async Task<MissionService> DeployContractAndGetServiceAsync(Nethereum.Web3.Web3 web3, MissionDeployment missionDeployment, CancellationTokenSource cancellationTokenSource = null)
+        public static async Task<OwnableOrSiblingsService> DeployContractAndGetServiceAsync(Nethereum.Web3.Web3 web3, OwnableOrSiblingsDeployment ownableOrSiblingsDeployment, CancellationTokenSource cancellationTokenSource = null)
         {
-            var receipt = await DeployContractAndWaitForReceiptAsync(web3, missionDeployment, cancellationTokenSource);
-            return new MissionService(web3, receipt.ContractAddress);
+            var receipt = await DeployContractAndWaitForReceiptAsync(web3, ownableOrSiblingsDeployment, cancellationTokenSource);
+            return new OwnableOrSiblingsService(web3, receipt.ContractAddress);
         }
 
         protected Nethereum.Web3.IWeb3 Web3{ get; }
 
         public ContractHandler ContractHandler { get; }
 
-        public MissionService(Nethereum.Web3.Web3 web3, string contractAddress)
+        public OwnableOrSiblingsService(Nethereum.Web3.Web3 web3, string contractAddress)
         {
             Web3 = web3;
             ContractHandler = web3.Eth.GetContractHandler(contractAddress);
         }
 
-        public MissionService(Nethereum.Web3.IWeb3 web3, string contractAddress)
+        public OwnableOrSiblingsService(Nethereum.Web3.IWeb3 web3, string contractAddress)
         {
             Web3 = web3;
             ContractHandler = web3.Eth.GetContractHandler(contractAddress);
@@ -72,27 +72,6 @@ namespace StratML.Contracts.Mission
                 addSiblingFunction.Sibling = sibling;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(addSiblingFunction, cancellationToken);
-        }
-
-        public Task<string> DescriptionQueryAsync(DescriptionFunction descriptionFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<DescriptionFunction, string>(descriptionFunction, blockParameter);
-        }
-
-        
-        public Task<string> DescriptionQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<DescriptionFunction, string>(null, blockParameter);
-        }
-
-        public Task<GetMissionResponseOutputDTO> GetMissionResponseQueryAsync(GetMissionResponseFunction getMissionResponseFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetMissionResponseFunction, GetMissionResponseOutputDTO>(getMissionResponseFunction, blockParameter);
-        }
-
-        public Task<GetMissionResponseOutputDTO> GetMissionResponseQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetMissionResponseFunction, GetMissionResponseOutputDTO>(null, blockParameter);
         }
 
         public Task<bool> IsSiblingQueryAsync(IsSiblingFunction isSiblingFunction, BlockParameter blockParameter = null)
@@ -189,32 +168,6 @@ namespace StratML.Contracts.Mission
                 transferOwnershipFunction.NewOwner = newOwner;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(transferOwnershipFunction, cancellationToken);
-        }
-
-        public Task<string> UpdateMissionRequestAsync(UpdateMissionFunction updateMissionFunction)
-        {
-             return ContractHandler.SendRequestAsync(updateMissionFunction);
-        }
-
-        public Task<TransactionReceipt> UpdateMissionRequestAndWaitForReceiptAsync(UpdateMissionFunction updateMissionFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateMissionFunction, cancellationToken);
-        }
-
-        public Task<string> UpdateMissionRequestAsync(string description)
-        {
-            var updateMissionFunction = new UpdateMissionFunction();
-                updateMissionFunction.Description = description;
-            
-             return ContractHandler.SendRequestAsync(updateMissionFunction);
-        }
-
-        public Task<TransactionReceipt> UpdateMissionRequestAndWaitForReceiptAsync(string description, CancellationTokenSource cancellationToken = null)
-        {
-            var updateMissionFunction = new UpdateMissionFunction();
-                updateMissionFunction.Description = description;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(updateMissionFunction, cancellationToken);
         }
     }
 }
