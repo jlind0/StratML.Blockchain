@@ -1,0 +1,7 @@
+{
+    "projectName": "StratML.Contracts",
+    "namespace": "StratML.Contracts",
+    "lang": 0,
+    "autoCodeGen": true,
+    "projectPath": "./"
+}
