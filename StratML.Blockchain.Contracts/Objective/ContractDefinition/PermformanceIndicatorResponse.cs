@@ -25,8 +25,8 @@ namespace StratML.Contracts.Objective.ContractDefinition
         public virtual List<MeasurementInstance> MeasurementInstances { get; set; }
         [Parameter("string", "otherInformation", 7)]
         public virtual string OtherInformation { get; set; }
-        [Parameter("uint8", "vauleChangeState", 8)]
-        public virtual byte VauleChangeState { get; set; }
+        [Parameter("uint8", "vauleChangeStage", 8)]
+        public virtual byte VauleChangeStage { get; set; }
         [Parameter("uint8", "perfomanceIndicator", 9)]
         public virtual byte PerfomanceIndicator { get; set; }
     }

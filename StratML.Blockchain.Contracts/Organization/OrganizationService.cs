@@ -132,14 +132,14 @@ namespace StratML.Contracts.Organization
             return ContractHandler.QueryDeserializingToObjectAsync<GetOrganizationResponseFunction, GetOrganizationResponseOutputDTO>(null, blockParameter);
         }
 
-        public Task<GetOrganizationResponseBaseOutputDTO> GetOrganizationResponseBaseQueryAsync(GetOrganizationResponseBaseFunction getOrganizationResponseBaseFunction, BlockParameter blockParameter = null)
+        public Task<GetOrganizationResponseBasedOutputDTO> GetOrganizationResponseBasedQueryAsync(GetOrganizationResponseBasedFunction getOrganizationResponseBasedFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetOrganizationResponseBaseFunction, GetOrganizationResponseBaseOutputDTO>(getOrganizationResponseBaseFunction, blockParameter);
+            return ContractHandler.QueryDeserializingToObjectAsync<GetOrganizationResponseBasedFunction, GetOrganizationResponseBasedOutputDTO>(getOrganizationResponseBasedFunction, blockParameter);
         }
 
-        public Task<GetOrganizationResponseBaseOutputDTO> GetOrganizationResponseBaseQueryAsync(BlockParameter blockParameter = null)
+        public Task<GetOrganizationResponseBasedOutputDTO> GetOrganizationResponseBasedQueryAsync(BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetOrganizationResponseBaseFunction, GetOrganizationResponseBaseOutputDTO>(null, blockParameter);
+            return ContractHandler.QueryDeserializingToObjectAsync<GetOrganizationResponseBasedFunction, GetOrganizationResponseBasedOutputDTO>(null, blockParameter);
         }
 
         public Task<List<string>> GetStakeholdersQueryAsync(GetStakeholdersFunction getStakeholdersFunction, BlockParameter blockParameter = null)

@@ -147,14 +147,14 @@ namespace StratML.Contracts.Goal
             return ContractHandler.QueryDeserializingToObjectAsync<GetGoalResponseFunction, GetGoalResponseOutputDTO>(null, blockParameter);
         }
 
-        public Task<GetGoalResponseBaseOutputDTO> GetGoalResponseBaseQueryAsync(GetGoalResponseBaseFunction getGoalResponseBaseFunction, BlockParameter blockParameter = null)
+        public Task<GetGoalResponseBasedOutputDTO> GetGoalResponseBasedQueryAsync(GetGoalResponseBasedFunction getGoalResponseBasedFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetGoalResponseBaseFunction, GetGoalResponseBaseOutputDTO>(getGoalResponseBaseFunction, blockParameter);
+            return ContractHandler.QueryDeserializingToObjectAsync<GetGoalResponseBasedFunction, GetGoalResponseBasedOutputDTO>(getGoalResponseBasedFunction, blockParameter);
         }
 
-        public Task<GetGoalResponseBaseOutputDTO> GetGoalResponseBaseQueryAsync(BlockParameter blockParameter = null)
+        public Task<GetGoalResponseBasedOutputDTO> GetGoalResponseBasedQueryAsync(BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetGoalResponseBaseFunction, GetGoalResponseBaseOutputDTO>(null, blockParameter);
+            return ContractHandler.QueryDeserializingToObjectAsync<GetGoalResponseBasedFunction, GetGoalResponseBasedOutputDTO>(null, blockParameter);
         }
 
         public Task<bool> IsSiblingQueryAsync(IsSiblingFunction isSiblingFunction, BlockParameter blockParameter = null)

@@ -12,8 +12,8 @@ namespace StratML.Contracts.Role.ContractDefinition
     public class RoleResponseBase 
     {
         [Parameter("tuple", "base", 1)]
-        public virtual RoleResponseBase Base { get; set; }
+        public virtual RoleResponseBased Base { get; set; }
         [Parameter("tuple[]", "stakeholders", 2)]
-        public virtual List<StakeholderResponseBase> Stakeholders { get; set; }
+        public virtual List<StakeholderResponseBased> Stakeholders { get; set; }
     }
 }

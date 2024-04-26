@@ -147,14 +147,14 @@ namespace StratML.Contracts.Objective
             return ContractHandler.QueryDeserializingToObjectAsync<GetObjectiveResponseFunction, GetObjectiveResponseOutputDTO>(null, blockParameter);
         }
 
-        public Task<GetObjectiveResponseBaseOutputDTO> GetObjectiveResponseBaseQueryAsync(GetObjectiveResponseBaseFunction getObjectiveResponseBaseFunction, BlockParameter blockParameter = null)
+        public Task<GetObjectiveResponseBasedOutputDTO> GetObjectiveResponseBasedQueryAsync(GetObjectiveResponseBasedFunction getObjectiveResponseBasedFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetObjectiveResponseBaseFunction, GetObjectiveResponseBaseOutputDTO>(getObjectiveResponseBaseFunction, blockParameter);
+            return ContractHandler.QueryDeserializingToObjectAsync<GetObjectiveResponseBasedFunction, GetObjectiveResponseBasedOutputDTO>(getObjectiveResponseBasedFunction, blockParameter);
         }
 
-        public Task<GetObjectiveResponseBaseOutputDTO> GetObjectiveResponseBaseQueryAsync(BlockParameter blockParameter = null)
+        public Task<GetObjectiveResponseBasedOutputDTO> GetObjectiveResponseBasedQueryAsync(BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetObjectiveResponseBaseFunction, GetObjectiveResponseBaseOutputDTO>(null, blockParameter);
+            return ContractHandler.QueryDeserializingToObjectAsync<GetObjectiveResponseBasedFunction, GetObjectiveResponseBasedOutputDTO>(null, blockParameter);
         }
 
         public Task<List<string>> GetPerformanceIndicatorsQueryAsync(GetPerformanceIndicatorsFunction getPerformanceIndicatorsFunction, BlockParameter blockParameter = null)

@@ -12,7 +12,7 @@ namespace StratML.Contracts.Organization.ContractDefinition
     public class OrganizationResponseBase 
     {
         [Parameter("tuple", "base", 1)]
-        public virtual OrganizationResponseBase Base { get; set; }
+        public virtual OrganizationResponseBased Base { get; set; }
         [Parameter("tuple[]", "stakeholders", 2)]
         public virtual List<StakeholderResponse> Stakeholders { get; set; }
     }

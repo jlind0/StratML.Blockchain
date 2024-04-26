@@ -34,7 +34,7 @@ enum ValueChainStageType{
     InputProcessing,
     Input
 }
-struct RoleResponseBase{
+struct RoleResponseBased{
     address identifier;
     string name;
     string description;
@@ -42,18 +42,19 @@ struct RoleResponseBase{
     address[] stakeholders;
 }
 struct RoleResponse{
-    RoleResponseBase base;
-    StakeholderResponseBase[] stakeholders;
+    RoleResponseBased base;
+    StakeholderResponseBased[] stakeholders;
 }
-struct StakeholderResponseBase{
+struct StakeholderResponseBased{
     address identifier;
     string name;
     StakeholderType stakeholderType;
     address[] roles;
 }
 struct StakeholderResponse{
-    StakeholderResponseBase base;
-    RoleResponseBase[] roles;
+    StakeholderResponseBased base;
+    RoleResponseBased[] roles;
+    string description;
 }
 struct Descriptor{
     string name;
@@ -87,10 +88,13 @@ struct RelationshipResponse{
 enum EntityTypes{
     Role,
     Stakeholder,
-    PerfomanceIndicator,
+    PerformanceIndicator,
     Objective,
     Organization,
-    Goal
+    Goal,
+    Mission,
+    Vision,
+    Relationship
 }
 struct Reference{
     EntityTypes entityType;
@@ -108,10 +112,10 @@ struct PermformanceIndicatorResponse{
     RelationshipResponse[] relationships;
     MeasurementInstance[] measurementInstances;
     string otherInformation;
-    ValueChainStageType vauleChangeState;
+    ValueChainStageType vauleChangeStage;
     PerfomanceIndicatorType perfomanceIndicator;
 }
-struct ObjectiveResponseBase{
+struct ObjectiveResponseBased{
     address identifier;
     string name;
     string description;
@@ -121,10 +125,10 @@ struct ObjectiveResponseBase{
     PermformanceIndicatorResponse[] perfomanceIndicators;
 }
 struct ObjectiveResponse{
-    ObjectiveResponseBase base;
-    StakeholderResponseBase[] stakeholders;
+    ObjectiveResponseBased base;
+    StakeholderResponseBased[] stakeholders;
 }
-struct GoalResponseBase{
+struct GoalResponseBased{
     address identifier;
     string name;
     string description;
@@ -134,19 +138,19 @@ struct GoalResponseBase{
     address[] objectives;
 }
 struct GoalResponse{
-    GoalResponseBase base;
-    StakeholderResponseBase[] stakeholders;
-    ObjectiveResponseBase[] objectives;
+    GoalResponseBased base;
+    StakeholderResponseBased[] stakeholders;
+    ObjectiveResponseBased[] objectives;
 }
-struct OrganizationResponseBase{
+struct OrganizationResponseBased{
     address identifier;
     string name;
     string description;
     string acryonym;
-    StakeholderResponseBase[] stakeholders;
+    StakeholderResponseBased[] stakeholders;
 }
 struct OrganizationResponse{
-    OrganizationResponseBase base;
+    OrganizationResponseBased base;
     StakeholderResponse[] stakeholders;
 }
 struct MissionResponse{
@@ -175,7 +179,7 @@ struct Value{
     string name;
     string description;
 }
-struct StrategeticPlanCoreResponseBase{
+struct StrategeticPlanCoreResponseBased{
     address[] organizations;
     VisionResponse vision;
     MissionResponse mission;
@@ -183,22 +187,22 @@ struct StrategeticPlanCoreResponseBase{
     address[] goals;
 }
 struct StrategeticPlanCoreResponse{
-    StrategeticPlanCoreResponseBase base;
-    OrganizationResponseBase[] organizations;
-    GoalResponseBase[] goals;
+    StrategeticPlanCoreResponseBased base;
+    OrganizationResponseBased[] organizations;
+    GoalResponseBased[] goals;
 }
-struct PerfomancePlanOrReportResponseBase{
+struct PerfomancePlanOrReportResponseBased{
     address identifier;
     string name;
     string description;
     string otherInformation;
-    StrategeticPlanCoreResponseBase strategeticPlanCore;
+    StrategeticPlanCoreResponseBased strategeticPlanCore;
     AdministrativeInformationResponse administrativeInformation;
-    ContactInformationResponse sumbitter;
+    ContactInformationResponse submitter;
     ReportType reportType;
 }
 struct PerfomancePlanOrReportResponse{
-    PerfomancePlanOrReportResponseBase base;
+    PerfomancePlanOrReportResponseBased base;
     StrategeticPlanCoreResponse strategeticPlanCore;
 }
 abstract contract OwnableOrSiblings is Ownable{
@@ -581,8 +585,8 @@ contract Role is OwnableOrSiblings {
     function getRoleTypes() public view returns(RoleType[] memory){
         return roleTypes;
     }
-    function getRoleBase() public view returns(RoleResponseBase memory){
-        RoleResponseBase memory response;
+    function getRoleBase() public view returns(RoleResponseBased memory){
+        RoleResponseBased memory response;
         response.identifier = address(this);
         response.name = name;
         response.description = description;
@@ -593,7 +597,7 @@ contract Role is OwnableOrSiblings {
     function getRole() public view returns(RoleResponse memory){
         RoleResponse memory response;
         response.base = getRoleBase();
-        response.stakeholders = new StakeholderResponseBase[](stakeholders.length);
+        response.stakeholders = new StakeholderResponseBased[](stakeholders.length);
         for(uint i = 0; i < stakeholders.length; i++){
             Stakeholder stakeholder = Stakeholder(stakeholders[i]);
             response.stakeholders[i] = stakeholder.getStakeholderBase();
@@ -607,24 +611,20 @@ contract Role is OwnableOrSiblings {
 contract Stakeholder is OwnableOrSiblings {
     string public name;
     StakeholderType public stakeholderType;
-    address[] public roles; 
+    address[] public roles;
+    string public description; 
 
-    constructor(address _registry, string memory _name, StakeholderType _stakeholderType, address[] memory _roles) OwnableOrSiblings(_registry)  {
+    constructor(address _registry, string memory _name, StakeholderType _stakeholderType, address[] memory _roles, string memory _description) OwnableOrSiblings(_registry)  {
         name = _name;
         stakeholderType = _stakeholderType;
         roles = _roles;
-
-        // Delegatecall to addStakeholder in each Role contract
-        for(uint i = 0; i < _roles.length; i++) {
-            Role role = Role(_roles[i]);
-            role.addStakeholder(address(this));
-        }
+        description = _description;
     }
 
-    function updateStakeholder(string memory _name, StakeholderType _stakeholderType, address[] memory _newRoles) public onlyOwnerOrSibling {
+    function updateStakeholder(string memory _name, StakeholderType _stakeholderType, address[] memory _newRoles, string memory _description) public onlyOwnerOrSibling {
         name = _name;
         stakeholderType = _stakeholderType;
-
+        description = _description;
         // Remove from old roles
         for(uint i = 0; i < roles.length; i++) {
             Role role = Role(roles[i]);
@@ -639,8 +639,8 @@ contract Stakeholder is OwnableOrSiblings {
 
         roles = _newRoles;
     }
-    function getStakeholderBase() public view returns(StakeholderResponseBase memory){
-        StakeholderResponseBase memory response;
+    function getStakeholderBase() public view returns(StakeholderResponseBased memory){
+        StakeholderResponseBased memory response;
         response.identifier = address(this);
         response.name = name;
         response.stakeholderType = stakeholderType;
@@ -650,7 +650,8 @@ contract Stakeholder is OwnableOrSiblings {
     function getStakeholder() public view returns(StakeholderResponse memory){
         StakeholderResponse memory response;
         response.base = getStakeholderBase(); 
-        response.roles = new RoleResponseBase[](roles.length);
+        response.description = description;
+        response.roles = new RoleResponseBased[](roles.length);
         for(uint i = 0; i < roles.length; i++){
             Role role = Role(roles[i]);
             response.roles[i] = role.getRoleBase();
@@ -715,13 +716,17 @@ contract PerformanceIndicator is OwnableOrSiblings{
     address[] relationships;
     MeasurementInstance[] measurementInstances;
     string public otherInformation;
-    ValueChainStageType public vauleChangeState;
+    ValueChainStageType public vauleChangeStage;
     PerfomanceIndicatorType public perfomanceIndicator;
-    constructor(address _registry, string memory _sequenceIndicator, string memory _measurementDimension, string memory _unitOfMeasurement, PerfomanceIndicatorType _perfomanceIndicator) OwnableOrSiblings(_registry){
+    constructor(address _registry, string memory _sequenceIndicator, string memory _measurementDimension, 
+        string memory _unitOfMeasurement, PerfomanceIndicatorType _perfomanceIndicator, string memory _otherInformation,
+        ValueChainStageType _vauleChangeStage) OwnableOrSiblings(_registry){
         sequenceIndicator = _sequenceIndicator;
         measurementDimension = _measurementDimension;
         unitOfMeasurement = _unitOfMeasurement;
         perfomanceIndicator = _perfomanceIndicator;
+        otherInformation = _otherInformation;
+        vauleChangeStage = _vauleChangeStage;
     }
     function addRelationship(address _relationshipAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < relationships.length; i++){
@@ -835,7 +840,7 @@ contract PerformanceIndicator is OwnableOrSiblings{
             }
         }
         response.otherInformation = otherInformation;
-        response.vauleChangeState = vauleChangeState;
+        response.vauleChangeStage = vauleChangeStage;
         response.perfomanceIndicator = perfomanceIndicator;
         return response;
     }
@@ -854,10 +859,11 @@ contract Objective is OwnableOrSiblings{
     string public otherInformation;
     address[] perfomanceIndicators;
     event StakeholderAdded(address indexed stakeholderAddress);
-    constructor(address _registry, string memory _name, string memory _description, string memory _sequenceIndicator) OwnableOrSiblings(_registry){
+    constructor(address _registry, string memory _name, string memory _description, string memory _sequenceIndicator, string memory _otherInformation) OwnableOrSiblings(_registry){
         name = _name;
         description = _description;
         sequenceIndicator = _sequenceIndicator;
+        otherInformation = _otherInformation;
     }
     function addStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < stakeholders.length; i++){
@@ -900,8 +906,8 @@ contract Objective is OwnableOrSiblings{
     function getPerformanceIndicators() public view returns(address[] memory){
         return perfomanceIndicators;
     }
-    function getObjectiveResponseBase() public view returns(ObjectiveResponseBase memory){
-        ObjectiveResponseBase memory response;
+    function getObjectiveResponseBased() public view returns(ObjectiveResponseBased memory){
+        ObjectiveResponseBased memory response;
         response.identifier = address(this);
         response.name = name;
         response.description = description;
@@ -917,8 +923,8 @@ contract Objective is OwnableOrSiblings{
     }
     function getObjectiveResponse() public view returns(ObjectiveResponse memory){
         ObjectiveResponse memory response;
-        response.base = getObjectiveResponseBase();
-        response.stakeholders = new StakeholderResponseBase[](stakeholders.length);
+        response.base = getObjectiveResponseBased();
+        response.stakeholders = new StakeholderResponseBased[](stakeholders.length);
         for(uint i = 0; i < stakeholders.length; i++){
             Stakeholder stakeholder = Stakeholder(stakeholders[i]);
             response.stakeholders[i] = stakeholder.getStakeholderBase();
@@ -934,10 +940,11 @@ contract Goal is OwnableOrSiblings{
     string public otherInformation;
     address[] objectives;
     event StakeholderAdded(address indexed stakeholderAddress);
-    constructor(address _registry, string memory _name, string memory _description, string memory _sequenceIndicator) OwnableOrSiblings(_registry){
+    constructor(address _registry, string memory _name, string memory _description, string memory _sequenceIndicator, string memory _otherInformation) OwnableOrSiblings(_registry){
         name = _name;
         description = _description;
         sequenceIndicator = _sequenceIndicator;
+        otherInformation = _otherInformation;
     }
     function addStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{
         for(uint i = 0; i < stakeholders.length; i++){
@@ -974,8 +981,8 @@ contract Goal is OwnableOrSiblings{
             }
         }
     }
-    function getGoalResponseBase() public view returns(GoalResponseBase memory){
-        GoalResponseBase memory response;
+    function getGoalResponseBased() public view returns(GoalResponseBased memory){
+        GoalResponseBased memory response;
         response.identifier = address(this);
         response.name = name;
         response.description = description;
@@ -987,16 +994,16 @@ contract Goal is OwnableOrSiblings{
     }
     function getGoalResponse() public view returns(GoalResponse memory){
         GoalResponse memory response;
-        response.base = getGoalResponseBase();
-        response.stakeholders = new StakeholderResponseBase[](stakeholders.length);
+        response.base = getGoalResponseBased();
+        response.stakeholders = new StakeholderResponseBased[](stakeholders.length);
         for(uint i = 0; i < stakeholders.length; i++){
             Stakeholder stakeholder = Stakeholder(stakeholders[i]);
             response.stakeholders[i] = stakeholder.getStakeholderBase();
         }
-        response.objectives = new ObjectiveResponseBase[](objectives.length);
+        response.objectives = new ObjectiveResponseBased[](objectives.length);
         for(uint i = 0; i < objectives.length; i++){
             Objective objective = Objective(objectives[i]);
-            response.objectives[i] = objective.getObjectiveResponseBase();
+            response.objectives[i] = objective.getObjectiveResponseBased();
         }
         return response;
     }
@@ -1033,13 +1040,13 @@ contract Organization is OwnableOrSiblings{
     function getStakeholders() public view returns(address[] memory){
         return stakeholders;
     }
-    function getOrganizationResponseBase() public view returns(OrganizationResponseBase memory){
-        OrganizationResponseBase memory response;
+    function getOrganizationResponseBased() public view returns(OrganizationResponseBased memory){
+        OrganizationResponseBased memory response;
         response.identifier = address(this);
         response.name = name;
         response.description = description;
         response.acryonym = acryonym;
-        response.stakeholders = new StakeholderResponseBase[](stakeholders.length);
+        response.stakeholders = new StakeholderResponseBased[](stakeholders.length);
         for(uint i = 0; i < stakeholders.length; i++){
             Stakeholder stakeholder = Stakeholder(stakeholders[i]);
             response.stakeholders[i].identifier = stakeholders[i];
@@ -1051,7 +1058,7 @@ contract Organization is OwnableOrSiblings{
     }
     function getOrganizationResponse() public view returns(OrganizationResponse memory){
         OrganizationResponse memory response;
-        response.base = getOrganizationResponseBase();
+        response.base = getOrganizationResponseBased();
         response.stakeholders = new StakeholderResponse[](stakeholders.length);
         for(uint i = 0; i < stakeholders.length; i++){
             Stakeholder stakeholder = Stakeholder(stakeholders[i]);
@@ -1158,13 +1165,14 @@ contract PerfomancePlanOrReport is Ownable{
     address[] organizations;
     StrategicPlan private strategeticPlan;
     address administrativeInformation;
-    address sumbitter;
+    address submitter;
     ReportType reportType;
-    constructor(address _registry, string memory _name, string memory _description, ReportType _reportType) Ownable(msg.sender){
+    constructor(address _registry, string memory _name, string memory _description, ReportType _reportType, string memory _otherInformation) Ownable(msg.sender){
         registry = _registry; 
         name = _name;
         description = _description;
         reportType = _reportType;
+        otherInformation = _otherInformation;
     }
     function updateVision(address _vision) public onlyOwner{
         require(strategeticPlan.vision == address(0));
@@ -1231,9 +1239,9 @@ contract PerfomancePlanOrReport is Ownable{
         require(administrativeInformation == address(0));
         administrativeInformation = _adminInfo;
     }
-    function setSumbitter(address _submitter) public onlyOwner{
-        require(sumbitter == address(0));
-        sumbitter = _submitter;
+    function setsubmitter(address _submitter) public onlyOwner{
+        require(submitter == address(0));
+        submitter = _submitter;
     }
     function getOrganizations() public view returns(address[] memory){
         return organizations;
@@ -1248,32 +1256,32 @@ contract PerfomancePlanOrReport is Ownable{
         require(administrativeInformation != address(0));
         return AdministrativeInformation(administrativeInformation).getAdministrativeInformationResponse();
     }
-    function getSumbitter() public view returns(ContactInformationResponse memory){
-        require(sumbitter != address(0));
-        return ContactInformation(sumbitter).getContactInformationResponse();
+    function getsubmitter() public view returns(ContactInformationResponse memory){
+        require(submitter != address(0));
+        return ContactInformation(submitter).getContactInformationResponse();
     }
-    function getPerfomancePlanOrReportResponseBase() public view returns(PerfomancePlanOrReportResponseBase memory){
-        PerfomancePlanOrReportResponseBase memory response;
+    function getPerfomancePlanOrReportResponseBased() public view returns(PerfomancePlanOrReportResponseBased memory){
+        PerfomancePlanOrReportResponseBased memory response;
         response.identifier = address(this);
         response.name = name;
         response.description = description;
         response.otherInformation = otherInformation;
-        response.strategeticPlanCore = getStrategeticPlanCoreResponseBase();
+        response.strategeticPlanCore = getStrategeticPlanCoreResponseBased();
         if(administrativeInformation != address(0))
             response.administrativeInformation = AdministrativeInformation(administrativeInformation).getAdministrativeInformationResponse();
-        if(sumbitter != address(0))
-            response.sumbitter = ContactInformation(sumbitter).getContactInformationResponse();
+        if(submitter != address(0))
+            response.submitter = ContactInformation(submitter).getContactInformationResponse();
         response.reportType = reportType;
         return response;
     }
     function getPerfomancePlanOrReportResponse() public view returns(PerfomancePlanOrReportResponse memory){
         PerfomancePlanOrReportResponse memory response;
-        response.base = getPerfomancePlanOrReportResponseBase();
+        response.base = getPerfomancePlanOrReportResponseBased();
         response.strategeticPlanCore = getStrategeticPlanCoreResponse();
         return response;
     }
-    function getStrategeticPlanCoreResponseBase() public view returns(StrategeticPlanCoreResponseBase memory){
-        StrategeticPlanCoreResponseBase memory response;
+    function getStrategeticPlanCoreResponseBased() public view returns(StrategeticPlanCoreResponseBased memory){
+        StrategeticPlanCoreResponseBased memory response;
         response.organizations = organizations;
         if(strategeticPlan.vision != address(0))
             response.vision = Vision(strategeticPlan.vision).getVisionResponse();
@@ -1285,16 +1293,16 @@ contract PerfomancePlanOrReport is Ownable{
     }
     function getStrategeticPlanCoreResponse() public view returns(StrategeticPlanCoreResponse memory){
         StrategeticPlanCoreResponse memory response;
-        response.base = getStrategeticPlanCoreResponseBase();
-        response.organizations = new OrganizationResponseBase[](organizations.length);
+        response.base = getStrategeticPlanCoreResponseBased();
+        response.organizations = new OrganizationResponseBased[](organizations.length);
         for(uint i = 0; i < organizations.length; i++){
             Organization organization = Organization(organizations[i]);
-            response.organizations[i] = organization.getOrganizationResponseBase();
+            response.organizations[i] = organization.getOrganizationResponseBased();
         }
-        response.goals = new GoalResponseBase[](strategeticPlan.goals.length);
+        response.goals = new GoalResponseBased[](strategeticPlan.goals.length);
         for(uint i = 0; i < strategeticPlan.goals.length; i++){
             Goal goal = Goal(strategeticPlan.goals[i]);
-            response.goals[i] = goal.getGoalResponseBase();
+            response.goals[i] = goal.getGoalResponseBased();
         }
         return response;
     }

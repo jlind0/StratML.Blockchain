@@ -12,7 +12,7 @@ namespace StratML.Contracts.StratMLRegistry.ContractDefinition
     public class PerfomancePlanOrReportResponseBase 
     {
         [Parameter("tuple", "base", 1)]
-        public virtual PerfomancePlanOrReportResponseBase Base { get; set; }
+        public virtual PerfomancePlanOrReportResponseBased Base { get; set; }
         [Parameter("tuple", "strategeticPlanCore", 2)]
         public virtual StrategeticPlanCoreResponse StrategeticPlanCore { get; set; }
     }

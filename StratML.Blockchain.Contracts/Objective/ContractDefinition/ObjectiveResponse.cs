@@ -12,8 +12,8 @@ namespace StratML.Contracts.Objective.ContractDefinition
     public class ObjectiveResponseBase 
     {
         [Parameter("tuple", "base", 1)]
-        public virtual ObjectiveResponseBase Base { get; set; }
+        public virtual ObjectiveResponseBased Base { get; set; }
         [Parameter("tuple[]", "stakeholders", 2)]
-        public virtual List<StakeholderResponseBase> Stakeholders { get; set; }
+        public virtual List<StakeholderResponseBased> Stakeholders { get; set; }
     }
 }

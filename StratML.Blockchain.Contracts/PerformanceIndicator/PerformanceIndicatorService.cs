@@ -392,15 +392,15 @@ namespace StratML.Contracts.PerformanceIndicator
              return ContractHandler.SendRequestAndWaitForReceiptAsync(updatePerformanceIndicatorFunction, cancellationToken);
         }
 
-        public Task<byte> VauleChangeStateQueryAsync(VauleChangeStateFunction vauleChangeStateFunction, BlockParameter blockParameter = null)
+        public Task<byte> VauleChangeStageQueryAsync(VauleChangeStageFunction vauleChangeStageFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<VauleChangeStateFunction, byte>(vauleChangeStateFunction, blockParameter);
+            return ContractHandler.QueryAsync<VauleChangeStageFunction, byte>(vauleChangeStageFunction, blockParameter);
         }
 
         
-        public Task<byte> VauleChangeStateQueryAsync(BlockParameter blockParameter = null)
+        public Task<byte> VauleChangeStageQueryAsync(BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<VauleChangeStateFunction, byte>(null, blockParameter);
+            return ContractHandler.QueryAsync<VauleChangeStageFunction, byte>(null, blockParameter);
         }
     }
 }

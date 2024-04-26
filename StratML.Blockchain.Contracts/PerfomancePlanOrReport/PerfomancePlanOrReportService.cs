@@ -181,14 +181,14 @@ namespace StratML.Contracts.PerfomancePlanOrReport
             return ContractHandler.QueryDeserializingToObjectAsync<GetPerfomancePlanOrReportResponseFunction, GetPerfomancePlanOrReportResponseOutputDTO>(null, blockParameter);
         }
 
-        public Task<GetPerfomancePlanOrReportResponseBaseOutputDTO> GetPerfomancePlanOrReportResponseBaseQueryAsync(GetPerfomancePlanOrReportResponseBaseFunction getPerfomancePlanOrReportResponseBaseFunction, BlockParameter blockParameter = null)
+        public Task<GetPerfomancePlanOrReportResponseBasedOutputDTO> GetPerfomancePlanOrReportResponseBasedQueryAsync(GetPerfomancePlanOrReportResponseBasedFunction getPerfomancePlanOrReportResponseBasedFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetPerfomancePlanOrReportResponseBaseFunction, GetPerfomancePlanOrReportResponseBaseOutputDTO>(getPerfomancePlanOrReportResponseBaseFunction, blockParameter);
+            return ContractHandler.QueryDeserializingToObjectAsync<GetPerfomancePlanOrReportResponseBasedFunction, GetPerfomancePlanOrReportResponseBasedOutputDTO>(getPerfomancePlanOrReportResponseBasedFunction, blockParameter);
         }
 
-        public Task<GetPerfomancePlanOrReportResponseBaseOutputDTO> GetPerfomancePlanOrReportResponseBaseQueryAsync(BlockParameter blockParameter = null)
+        public Task<GetPerfomancePlanOrReportResponseBasedOutputDTO> GetPerfomancePlanOrReportResponseBasedQueryAsync(BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetPerfomancePlanOrReportResponseBaseFunction, GetPerfomancePlanOrReportResponseBaseOutputDTO>(null, blockParameter);
+            return ContractHandler.QueryDeserializingToObjectAsync<GetPerfomancePlanOrReportResponseBasedFunction, GetPerfomancePlanOrReportResponseBasedOutputDTO>(null, blockParameter);
         }
 
         public Task<GetStrategeticPlanCoreResponseOutputDTO> GetStrategeticPlanCoreResponseQueryAsync(GetStrategeticPlanCoreResponseFunction getStrategeticPlanCoreResponseFunction, BlockParameter blockParameter = null)
@@ -201,24 +201,14 @@ namespace StratML.Contracts.PerfomancePlanOrReport
             return ContractHandler.QueryDeserializingToObjectAsync<GetStrategeticPlanCoreResponseFunction, GetStrategeticPlanCoreResponseOutputDTO>(null, blockParameter);
         }
 
-        public Task<GetStrategeticPlanCoreResponseBaseOutputDTO> GetStrategeticPlanCoreResponseBaseQueryAsync(GetStrategeticPlanCoreResponseBaseFunction getStrategeticPlanCoreResponseBaseFunction, BlockParameter blockParameter = null)
+        public Task<GetStrategeticPlanCoreResponseBasedOutputDTO> GetStrategeticPlanCoreResponseBasedQueryAsync(GetStrategeticPlanCoreResponseBasedFunction getStrategeticPlanCoreResponseBasedFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetStrategeticPlanCoreResponseBaseFunction, GetStrategeticPlanCoreResponseBaseOutputDTO>(getStrategeticPlanCoreResponseBaseFunction, blockParameter);
+            return ContractHandler.QueryDeserializingToObjectAsync<GetStrategeticPlanCoreResponseBasedFunction, GetStrategeticPlanCoreResponseBasedOutputDTO>(getStrategeticPlanCoreResponseBasedFunction, blockParameter);
         }
 
-        public Task<GetStrategeticPlanCoreResponseBaseOutputDTO> GetStrategeticPlanCoreResponseBaseQueryAsync(BlockParameter blockParameter = null)
+        public Task<GetStrategeticPlanCoreResponseBasedOutputDTO> GetStrategeticPlanCoreResponseBasedQueryAsync(BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetStrategeticPlanCoreResponseBaseFunction, GetStrategeticPlanCoreResponseBaseOutputDTO>(null, blockParameter);
-        }
-
-        public Task<GetSumbitterOutputDTO> GetSumbitterQueryAsync(GetSumbitterFunction getSumbitterFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetSumbitterFunction, GetSumbitterOutputDTO>(getSumbitterFunction, blockParameter);
-        }
-
-        public Task<GetSumbitterOutputDTO> GetSumbitterQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetSumbitterFunction, GetSumbitterOutputDTO>(null, blockParameter);
+            return ContractHandler.QueryDeserializingToObjectAsync<GetStrategeticPlanCoreResponseBasedFunction, GetStrategeticPlanCoreResponseBasedOutputDTO>(null, blockParameter);
         }
 
         public Task<GetValuesOutputDTO> GetValuesQueryAsync(GetValuesFunction getValuesFunction, BlockParameter blockParameter = null)
@@ -229,6 +219,16 @@ namespace StratML.Contracts.PerfomancePlanOrReport
         public Task<GetValuesOutputDTO> GetValuesQueryAsync(BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryDeserializingToObjectAsync<GetValuesFunction, GetValuesOutputDTO>(null, blockParameter);
+        }
+
+        public Task<GetsubmitterOutputDTO> GetsubmitterQueryAsync(GetsubmitterFunction getsubmitterFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryDeserializingToObjectAsync<GetsubmitterFunction, GetsubmitterOutputDTO>(getsubmitterFunction, blockParameter);
+        }
+
+        public Task<GetsubmitterOutputDTO> GetsubmitterQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryDeserializingToObjectAsync<GetsubmitterFunction, GetsubmitterOutputDTO>(null, blockParameter);
         }
 
         public Task<string> NameQueryAsync(NameFunction nameFunction, BlockParameter blockParameter = null)
@@ -425,30 +425,30 @@ namespace StratML.Contracts.PerfomancePlanOrReport
              return ContractHandler.SendRequestAndWaitForReceiptAsync(setMissionFunction, cancellationToken);
         }
 
-        public Task<string> SetSumbitterRequestAsync(SetSumbitterFunction setSumbitterFunction)
+        public Task<string> SetsubmitterRequestAsync(SetsubmitterFunction setsubmitterFunction)
         {
-             return ContractHandler.SendRequestAsync(setSumbitterFunction);
+             return ContractHandler.SendRequestAsync(setsubmitterFunction);
         }
 
-        public Task<TransactionReceipt> SetSumbitterRequestAndWaitForReceiptAsync(SetSumbitterFunction setSumbitterFunction, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> SetsubmitterRequestAndWaitForReceiptAsync(SetsubmitterFunction setsubmitterFunction, CancellationTokenSource cancellationToken = null)
         {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(setSumbitterFunction, cancellationToken);
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setsubmitterFunction, cancellationToken);
         }
 
-        public Task<string> SetSumbitterRequestAsync(string submitter)
+        public Task<string> SetsubmitterRequestAsync(string submitter)
         {
-            var setSumbitterFunction = new SetSumbitterFunction();
-                setSumbitterFunction.Submitter = submitter;
+            var setsubmitterFunction = new SetsubmitterFunction();
+                setsubmitterFunction.Submitter = submitter;
             
-             return ContractHandler.SendRequestAsync(setSumbitterFunction);
+             return ContractHandler.SendRequestAsync(setsubmitterFunction);
         }
 
-        public Task<TransactionReceipt> SetSumbitterRequestAndWaitForReceiptAsync(string submitter, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> SetsubmitterRequestAndWaitForReceiptAsync(string submitter, CancellationTokenSource cancellationToken = null)
         {
-            var setSumbitterFunction = new SetSumbitterFunction();
-                setSumbitterFunction.Submitter = submitter;
+            var setsubmitterFunction = new SetsubmitterFunction();
+                setsubmitterFunction.Submitter = submitter;
             
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(setSumbitterFunction, cancellationToken);
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setsubmitterFunction, cancellationToken);
         }
 
         public Task<string> TransferOwnershipRequestAsync(TransferOwnershipFunction transferOwnershipFunction)

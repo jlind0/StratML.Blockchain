@@ -74,6 +74,17 @@ namespace StratML.Contracts.Stakeholder
              return ContractHandler.SendRequestAndWaitForReceiptAsync(addSiblingFunction, cancellationToken);
         }
 
+        public Task<string> DescriptionQueryAsync(DescriptionFunction descriptionFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<DescriptionFunction, string>(descriptionFunction, blockParameter);
+        }
+
+        
+        public Task<string> DescriptionQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<DescriptionFunction, string>(null, blockParameter);
+        }
+
         public Task<List<string>> GetRolesQueryAsync(GetRolesFunction getRolesFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<GetRolesFunction, List<string>>(getRolesFunction, blockParameter);
@@ -247,22 +258,24 @@ namespace StratML.Contracts.Stakeholder
              return ContractHandler.SendRequestAndWaitForReceiptAsync(updateStakeholderFunction, cancellationToken);
         }
 
-        public Task<string> UpdateStakeholderRequestAsync(string name, byte stakeholderType, List<string> newRoles)
+        public Task<string> UpdateStakeholderRequestAsync(string name, byte stakeholderType, List<string> newRoles, string description)
         {
             var updateStakeholderFunction = new UpdateStakeholderFunction();
                 updateStakeholderFunction.Name = name;
                 updateStakeholderFunction.StakeholderType = stakeholderType;
                 updateStakeholderFunction.NewRoles = newRoles;
+                updateStakeholderFunction.Description = description;
             
              return ContractHandler.SendRequestAsync(updateStakeholderFunction);
         }
 
-        public Task<TransactionReceipt> UpdateStakeholderRequestAndWaitForReceiptAsync(string name, byte stakeholderType, List<string> newRoles, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> UpdateStakeholderRequestAndWaitForReceiptAsync(string name, byte stakeholderType, List<string> newRoles, string description, CancellationTokenSource cancellationToken = null)
         {
             var updateStakeholderFunction = new UpdateStakeholderFunction();
                 updateStakeholderFunction.Name = name;
                 updateStakeholderFunction.StakeholderType = stakeholderType;
                 updateStakeholderFunction.NewRoles = newRoles;
+                updateStakeholderFunction.Description = description;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(updateStakeholderFunction, cancellationToken);
         }

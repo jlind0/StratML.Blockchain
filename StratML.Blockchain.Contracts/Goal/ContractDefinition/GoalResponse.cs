@@ -12,10 +12,10 @@ namespace StratML.Contracts.Goal.ContractDefinition
     public class GoalResponseBase 
     {
         [Parameter("tuple", "base", 1)]
-        public virtual GoalResponseBase Base { get; set; }
+        public virtual GoalResponseBased Base { get; set; }
         [Parameter("tuple[]", "stakeholders", 2)]
-        public virtual List<StakeholderResponseBase> Stakeholders { get; set; }
+        public virtual List<StakeholderResponseBased> Stakeholders { get; set; }
         [Parameter("tuple[]", "objectives", 3)]
-        public virtual List<ObjectiveResponseBase> Objectives { get; set; }
+        public virtual List<ObjectiveResponseBased> Objectives { get; set; }
     }
 }
