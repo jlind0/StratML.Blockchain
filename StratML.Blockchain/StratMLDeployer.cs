@@ -710,6 +710,27 @@ namespace StratML.Blockchain
                                 Description = tr.Description
                             }).ToArray()
                         }).ToArray();
+                        List<Relationship> rls = new List<Relationship>();
+                        foreach(var refr in pi.Relationships)
+                        {
+                            var rs = new RelationshipService(W3, refr.Identifier);
+                            var r = (await rs.GetRelationshipQueryAsync()).ReturnValue1;
+                            var rel = new Relationship()
+                            {
+                                Description = r.Description,
+                                Name = r.Name,
+                                RelationshipType = (RelationshipTypeType)r.RelationshipType,
+                                Identifier = r.Identifier
+                            };
+                            List<string> referents = new List<string>();
+                            foreach(var refId in r.References)
+                            {
+                                referents.Add(refId.Identifier);
+                            }
+                            rel.ReferentIdentifier = referents.ToArray();
+                            rls.Add(rel);
+                        }
+                        perf.Relationship = rls.ToArray();
                     }
                     objective.PerformanceIndicator = performanceIndicators.ToArray();
                     objectives.Add(objective);
