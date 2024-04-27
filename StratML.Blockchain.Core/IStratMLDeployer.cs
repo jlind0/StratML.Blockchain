@@ -10,7 +10,7 @@ namespace StratML.Blockchain.Core
 {
     public interface IStratMLDeployer
     {
-        Task<string?> DeployStratML(string registryAddress, string xml, CancellationToken token = default);
+        Task<string?> DeployStratML(string registryAddress, PerformancePlanOrReport stratML, CancellationToken token = default);
         Task<string?> DeployRegistry(CancellationToken token = default);
         Task<PerformancePlanOrReport?> Load(string address, CancellationToken token = default);
     }

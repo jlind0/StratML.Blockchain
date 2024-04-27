@@ -1,0 +1,6 @@
+@StratML.Blockchain.Services_HostAddress = http://localhost:5219
+
+GET {{StratML.Blockchain.Services_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

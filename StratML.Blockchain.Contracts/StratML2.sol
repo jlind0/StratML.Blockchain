@@ -547,11 +547,8 @@ contract Role is OwnableOrSiblings {
         for(uint i = 0; i < _roleTypes.length; i++){
             roleTypes.push(_roleTypes[i]);
         }
-        StratMLRegistry(_registry).addRole(address(this));
     }
     function updateRole(string memory _name, string memory _description, RoleType[] memory _roleTypes) public onlyOwnerOrSibling{
-        bool nameChanged = keccak256(abi.encodePacked(name)) != keccak256(abi.encodePacked(_name));
-        string memory oldName = name;
         name = _name;
         description = _description;
         for(uint i = 0; i < roleTypes.length; i++){
@@ -559,9 +556,6 @@ contract Role is OwnableOrSiblings {
         }
         for(uint i = 0; i < _roleTypes.length; i++){
             roleTypes.push(_roleTypes[i]);
-        }
-        if(nameChanged){
-            StratMLRegistry(registry).updateRoleIndexer(address(this), oldName);
         }
     }
     function addStakeholder(address _stakeholderAddress) public onlyOwnerOrSibling{

@@ -29,6 +29,7 @@ using StratML.Contracts.Vision;
 using StratML.Contracts.Vision.ContractDefinition;
 using StratML.Core;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -51,29 +52,34 @@ namespace StratML.Blockchain
             Logger = logger;
         }
 
-        public async Task<string?> DeployStratML(string registryAddress, string xml, CancellationToken token = default)
+        public async Task<string?> DeployStratML(string registryAddress, PerformancePlanOrReport stratML, CancellationToken token = default)
         {
+            var gas = (long)Math.Floor(((long)(await W3.Eth.GasPrice.SendRequestAsync()).Value)*1.1m);
             StratMLRegistryService registryService = new StratMLRegistryService(W3, registryAddress);
-            var stratML = XMLHelper.Deserialize<PerformancePlanOrReport>(xml);
             if(stratML == null)
             {
                 Logger.LogError("Failed to deserialize StratML XML");
                 return null;
             }
-            Dictionary<string, Stakeholder> stakeholders = new Dictionary<string, Stakeholder>();
-            Dictionary<string, string> stakleholdersNamesToAddress = new Dictionary<string, string>();
-            Dictionary<string, Role> roles = new Dictionary<string, Role>();
-            Dictionary<string, string> roleNamesToAddress = new Dictionary<string, string>();
-            Dictionary<string, string> idToAddress = new Dictionary<string, string>();
-            Dictionary<string, EntityTypes> entities = new Dictionary<string, EntityTypes>();
+            ConcurrentDictionary<string, Stakeholder> stakeholders = new ConcurrentDictionary<string, Stakeholder>();
+            ConcurrentDictionary<string, string> stakleholdersNamesToAddress = new ConcurrentDictionary<string, string>();
+            ConcurrentDictionary<string, Role> roles = new ConcurrentDictionary<string, Role>();
+            ConcurrentDictionary<string, string> roleNamesToAddress = new ConcurrentDictionary<string, string>();
+            ConcurrentDictionary<string, string> idToAddress = new ConcurrentDictionary<string, string>();
+            ConcurrentDictionary<string, EntityTypes> entities = new ConcurrentDictionary<string, EntityTypes>();
             foreach(var org in stratML.StrategicPlanCore.Organization)
             {
                 foreach(var stakeholder in org.Stakeholder)
                 {
-                    stakeholders.Add(stakeholder.Name, stakeholder);
+                    if (string.IsNullOrEmpty(stakeholder.Name))
+                        stakeholder.Name = Guid.NewGuid().ToString();
+                    stakeholders.TryAdd(stakeholder.Name, stakeholder);
                     foreach(var role in stakeholder.Role)
                     {
-                        roles.Add(role.Name, role);
+                        if(string.IsNullOrEmpty(role.Name))
+                            role.Name = Guid.NewGuid().ToString();
+                        if(!roles.ContainsKey(role.Name))
+                            roles.TryAdd(role.Name, role);
                     }
                 }
             }
@@ -81,14 +87,18 @@ namespace StratML.Blockchain
             {
                 foreach(var stakeholder in goal.Stakeholder)
                 {
+                    if (string.IsNullOrEmpty(stakeholder.Name))
+                        stakeholder.Name = Guid.NewGuid().ToString();
                     if(!stakeholders.ContainsKey(stakeholder.Name))
                     {
-                        stakeholders.Add(stakeholder.Name, stakeholder);
+                        stakeholders.TryAdd(stakeholder.Name, stakeholder);
                         foreach(var role in stakeholder.Role)
                         {
+                            if(string.IsNullOrEmpty(role.Name))
+                                role.Name = Guid.NewGuid().ToString();
                             if(!roles.ContainsKey(role.Name))
                             {
-                                roles.Add(role.Name, role);
+                                roles.TryAdd(role.Name, role);
                             }
                         }
                     }
@@ -97,15 +107,19 @@ namespace StratML.Blockchain
                 {
                     foreach(var stakeholder in obj.Stakeholder)
                     {
+                        if (string.IsNullOrEmpty(stakeholder.Name))
+                            stakeholder.Name = Guid.NewGuid().ToString();
                         if(!stakeholders.ContainsKey(stakeholder.Name))
                         {
-                            stakeholders.Add(stakeholder.Name, stakeholder);
+                            stakeholders.TryAdd(stakeholder.Name, stakeholder);
                         }
                         foreach (var role in stakeholder.Role)
                         {
+                            if(!string.IsNullOrEmpty(role.Name))
+                                role.Name = Guid.NewGuid().ToString();
                             if (!roles.ContainsKey(role.Name))
                             {
-                                roles.Add(role.Name, role);
+                                roles.TryAdd(role.Name, role);
                             }
                         }
                     }
@@ -115,89 +129,107 @@ namespace StratML.Blockchain
             {
                 var rs = await registryService.GetRolesByNameQueryAsync(role.Name);
                 var ro = rs.ReturnValue1.FirstOrDefault();
-                if(ro == null)
+                if (ro == null)
                 {
-                    var r = await RoleService.DeployContractAndGetServiceAsync(W3, new RoleDeployment
+                    var r = await RoleService.DeployContractAndWaitForReceiptAsync(W3, new RoleDeployment
                     {
                         Registry = registryAddress,
-                        Name = role.Name ?? "",
-                        RoleTypes = role.RoleType.Select(rt => (byte)rt).ToList(),
-                        Description = role.Description ?? ""
+                        Name = role.Name ?? " ",
+                        RoleTypes = role.RoleType == null ? [] : role.RoleType.Select(rt => (byte)rt).ToList(),
+                        Description = role.Description ?? " ",
+                        Gas = 10000000,
+                        GasPrice = gas
                     });
-                    if(r != null)
+
+                    if (r != null)
                     {
-                        roleNamesToAddress.Add(role.Name, r.ContractHandler.ContractAddress);
-                        entities.Add(r.ContractHandler.ContractAddress, EntityTypes.Role);
+                        roleNamesToAddress.TryAdd(role.Name, r.ContractAddress);
+                        entities.TryAdd(r.ContractAddress, EntityTypes.Role);
                     }
                 }
                 else
                 {
-                    roleNamesToAddress.Add(role.Name, ro.Base.Identifier);
-                    entities.Add(ro.Base.Identifier, EntityTypes.Role);
+                    roleNamesToAddress.TryAdd(role.Name, ro.Base.Identifier);
+                    entities.TryAdd(ro.Base.Identifier, EntityTypes.Role);
                 }
             }
             foreach(var stakeholder in stakeholders.Values)
             {
-                if(stakeholder.Name == null)
+                if (stakeholder.Name == null)
                     continue;
                 var sh = await registryService.GetStakeholdersByNameQueryAsync(stakeholder.Name);
                 var sho = sh.ReturnValue1.FirstOrDefault();
-                if(sho == null)
+                if (sho == null)
                 {
                     var s = await StakeholderService.DeployContractAndGetServiceAsync(W3, new StakeholderDeployment
                     {
-                        Name = stakeholder.Name ?? "",
+                        Name = stakeholder.Name ?? " ",
                         StakeholderType = (byte)stakeholder.StakeholderTypeType,
                         Registry = registryAddress,
-                        Roles = stakeholder.Role.Select(r => roleNamesToAddress[r.Name]).ToList(),
-                        Description = stakeholder.Description ?? ""
+                        Roles = stakeholder.Role == null ? [] : stakeholder.Role.Select(r => roleNamesToAddress[r.Name]).ToList(),
+                        Description = stakeholder.Description ?? " ",
+                        Gas = 10000000,
+                        GasPrice = gas
                     });
-                    if(s != null)
+                    if (s != null)
                     {
-                        stakleholdersNamesToAddress.Add(stakeholder.Name, s.ContractHandler.ContractAddress);
-                        foreach(var role in stakeholder.Role)
+                        stakleholdersNamesToAddress.TryAdd(stakeholder.Name, s.ContractHandler.ContractAddress);
+                        foreach(var role in stakeholder.Role ?? [])
                         {
                             RoleService rs = new RoleService(W3, roleNamesToAddress[role.Name]);
                             await rs.AddStakeholderRequestAndWaitForReceiptAsync(new Contracts.Role.ContractDefinition.AddStakeholderFunction
                             {
-                                StakeholderAddress = s.ContractHandler.ContractAddress
+                                StakeholderAddress = s.ContractHandler.ContractAddress,
+                                Gas = 10000000,
+                                GasPrice = gas
                             });
                         }
-                    }   
+                    }
                 }
                 else
                 {
-                    stakleholdersNamesToAddress.Add(stakeholder.Name, sho.Base.Identifier);
+                    stakleholdersNamesToAddress.TryAdd(stakeholder.Name, sho.Base.Identifier);
                 }
             }
             var plan = await PerfomancePlanOrReportService.DeployContractAndGetServiceAsync(W3, new PerfomancePlanOrReportDeployment
             {
                 Registry = registryAddress,
-                Name = stratML.Name ?? "",
-                Description = stratML.Description ?? "",
+                Name = stratML.Name ?? " ",
+                Description = stratML.Description ?? " ",
                 ReportType = (byte)stratML.Type,
-                OtherInformation = stratML.OtherInformation ?? ""
-                
+                OtherInformation = stratML.OtherInformation ?? " ",
+                Gas = 10000000,
+                GasPrice = gas
+
             });
-            
+            await registryService.AddPerfomancePlanOrReportRequestAndWaitForReceiptAsync(new Contracts.StratMLRegistry.ContractDefinition.AddPerfomancePlanOrReportFunction
+            {
+                PerfomancePlanOrReport = plan.ContractHandler.ContractAddress,
+                Gas = 10000000,
+                GasPrice = gas
+            });
            
             if (stratML.AdministrativeInformation != null)
             {
                 var admin = await AdministrativeInformationService.DeployContractAndGetServiceAsync(W3, new AdministrativeInformationDeployment
                 {
                     Registry = registryAddress,
-                    Source = stratML.AdministrativeInformation.Source ?? "",
+                    Source = stratML.AdministrativeInformation.Source ?? " ",
                     StartDate = !string.IsNullOrWhiteSpace(stratML.AdministrativeInformation.StartDate) ? new DateTimeOffset(DateTime.Parse(stratML.AdministrativeInformation.StartDate)).ToUnixTimeSeconds() : 0,
                     EndDate = !string.IsNullOrWhiteSpace(stratML.AdministrativeInformation.EndDate) ? new DateTimeOffset(DateTime.Parse(stratML.AdministrativeInformation.EndDate)).ToUnixTimeSeconds() : 0,
-                    PublicationDate = !string.IsNullOrWhiteSpace(stratML.AdministrativeInformation.PublicationDate) ? new DateTimeOffset(DateTime.Parse(stratML.AdministrativeInformation.PublicationDate)).ToUnixTimeSeconds() : 0
+                    PublicationDate = !string.IsNullOrWhiteSpace(stratML.AdministrativeInformation.PublicationDate) ? new DateTimeOffset(DateTime.Parse(stratML.AdministrativeInformation.PublicationDate)).ToUnixTimeSeconds() : 0,
+                    Gas = 10000000,
+                    GasPrice = gas
                 });
                 if(admin != null)
                 {
                     if(stratML.AdministrativeInformation.Identifier != null)
-                        idToAddress.Add(stratML.AdministrativeInformation.Identifier, admin.ContractHandler.ContractAddress);
+                        idToAddress.TryAdd(stratML.AdministrativeInformation.Identifier, admin.ContractHandler.ContractAddress);
                     await plan.SetAdministrativeInformationRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.SetAdministrativeInformationFunction
                     {
-                        AdminInfo = admin.ContractHandler.ContractAddress
+                        AdminInfo = admin.ContractHandler.ContractAddress,
+                        Gas = 10000000,
+                        GasPrice = gas
                     });
                 }
             }
@@ -206,52 +238,66 @@ namespace StratML.Blockchain
                 var submitter = await ContactInformationService.DeployContractAndGetServiceAsync(W3, new ContactInformationDeployment
                 {
                     Registry = registryAddress,
-                    GivenName = stratML.Submitter.GivenName ?? "",
-                    Surname =  stratML.Submitter.Surname ?? "",
-                    PhoneNumber = stratML.Submitter.PhoneNumber ?? "",
-                    EmailAddress = stratML.Submitter.EmailAddress ?? ""
+                    GivenName = stratML.Submitter.GivenName ?? " ",
+                    Surname =  stratML.Submitter.Surname ?? " ",
+                    PhoneNumber = stratML.Submitter.PhoneNumber ?? " ",
+                    EmailAddress = stratML.Submitter.EmailAddress ?? " ",
+                    Gas = 10000000,
+                    GasPrice = gas
                 });
                 if(submitter != null)
                 {
-                    stratML.Submitter.Identifier ??= Guid.NewGuid().ToString();
-                    idToAddress.Add(stratML.Submitter.Identifier, submitter.ContractHandler.ContractAddress);
-                    entities.Add(stratML.Submitter.Identifier, EntityTypes.Stakeholder);
+                    if(string.IsNullOrEmpty(stratML.Submitter.Identifier))
+                        stratML.Submitter.Identifier = Guid.NewGuid().ToString();
+                    idToAddress.TryAdd(stratML.Submitter.Identifier, submitter.ContractHandler.ContractAddress);
+                    entities.TryAdd(stratML.Submitter.Identifier, EntityTypes.Stakeholder);
                     await plan.SetsubmitterRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.SetsubmitterFunction
                     {
-                        Submitter = submitter.ContractHandler.ContractAddress
+                        Submitter = submitter.ContractHandler.ContractAddress,
+                        Gas = 10000000,
+                        GasPrice = gas
                     }); 
                 }
             }
             if(stratML.StrategicPlanCore != null)
             {
-                foreach (var org in stratML.StrategicPlanCore.Organization)
+                foreach(var org in stratML.StrategicPlanCore.Organization ?? [])
                 {
                     var o = await OrganizationService.DeployContractAndGetServiceAsync(W3, new OrganizationDeployment
                     {
-                        Name = org.Name ?? "",
-                        Description = org.Description ?? "",
+                        Name = org.Name ?? " ",
+                        Description = org.Description ?? " ",
                         Registry = registryAddress,
-                        Acryonym = org.Acronym ?? ""
+                        Acryonym = org.Acronym ?? " ",
+                        Gas = 10000000,
+                        GasPrice = gas
                     });
                     if (o != null)
                     {
-                        org.Identifier ??= Guid.NewGuid().ToString();
-                        idToAddress.Add(org.Identifier, o.ContractHandler.ContractAddress);
-                        entities.Add(org.Identifier, EntityTypes.Organization);
+                        if (string.IsNullOrEmpty(org.Identifier))
+                            org.Identifier = Guid.NewGuid().ToString();
+                        idToAddress.TryAdd(org.Identifier, o.ContractHandler.ContractAddress);
+                        entities.TryAdd(org.Identifier, EntityTypes.Organization);
                         await plan.AddOrganizationRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.AddOrganizationFunction
                         {
-                            OrganizationAddress = o.ContractHandler.ContractAddress
+                            OrganizationAddress = o.ContractHandler.ContractAddress,
+                            Gas = 10000000,
+                            GasPrice = gas
                         });
                         await registryService.AddOrganizationRequestAndWaitForReceiptAsync(new Contracts.StratMLRegistry.ContractDefinition.AddOrganizationFunction
                         {
-                            Organization = o.ContractHandler.ContractAddress
+                            Organization = o.ContractHandler.ContractAddress,
+                            Gas = 10000000,
+                            GasPrice = gas
                         });
-                        foreach (var stakeholder in org.Stakeholder)
+                        foreach(var stakeholder in org.Stakeholder ?? [])
                         {
                             if (stakleholdersNamesToAddress.TryGetValue(stakeholder.Name, out string? address))
                                 await o.AddStakeholderRequestAndWaitForReceiptAsync(new Contracts.Organization.ContractDefinition.AddStakeholderFunction
                                 {
-                                    StakeholderAddress = address
+                                    StakeholderAddress = address,
+                                    Gas = 10000000,
+                                    GasPrice = gas
                                 });
                         }
                     }
@@ -261,16 +307,21 @@ namespace StratML.Blockchain
                     var mission = await MissionService.DeployContractAndGetServiceAsync(W3, new MissionDeployment
                     {
                         Registry = registryAddress,
-                        Description = stratML.StrategicPlanCore.Mission.Description ?? ""
+                        Description = stratML.StrategicPlanCore.Mission.Description ?? " ",
+                        Gas = 10000000,
+                        GasPrice = gas
                     });
                     if(mission != null)
                     {
-                        stratML.StrategicPlanCore.Mission.Identifier ??= Guid.NewGuid().ToString();     
-                        idToAddress.Add(stratML.StrategicPlanCore.Mission.Identifier, mission.ContractHandler.ContractAddress);
-                        entities.Add(stratML.StrategicPlanCore.Mission.Identifier, EntityTypes.Mission);
+                        if(string.IsNullOrEmpty(stratML.StrategicPlanCore.Mission.Identifier))
+                            stratML.StrategicPlanCore.Mission.Identifier = Guid.NewGuid().ToString();     
+                        idToAddress.TryAdd(stratML.StrategicPlanCore.Mission.Identifier, mission.ContractHandler.ContractAddress);
+                        entities.TryAdd(stratML.StrategicPlanCore.Mission.Identifier, EntityTypes.Mission);
                         await plan.SetMissionRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.SetMissionFunction
                         {
-                            Mission = mission.ContractHandler.ContractAddress
+                            Mission = mission.ContractHandler.ContractAddress,
+                            Gas = 10000000,
+                            GasPrice = gas
                         });
                     }
                 }
@@ -279,133 +330,161 @@ namespace StratML.Blockchain
                     var vision = await VisionService.DeployContractAndGetServiceAsync(W3, new VisionDeployment
                     {
                         Registry = registryAddress,
-                        Description = stratML.StrategicPlanCore.Vision.Description
+                        Description = stratML.StrategicPlanCore.Vision.Description,
+                        Gas = 10000000,
+                        GasPrice = gas
                     });
                     if(vision != null)
                     {
-                        stratML.StrategicPlanCore.Vision.Identifier ??= Guid.NewGuid().ToString();
-                        idToAddress.Add(stratML.StrategicPlanCore.Vision.Identifier, vision.ContractHandler.ContractAddress);
-                        entities.Add(stratML.StrategicPlanCore.Vision.Identifier, EntityTypes.Vision);
+                        if(string.IsNullOrEmpty(stratML.StrategicPlanCore.Vision.Identifier))
+                            stratML.StrategicPlanCore.Vision.Identifier = Guid.NewGuid().ToString();
+                        idToAddress.TryAdd(stratML.StrategicPlanCore.Vision.Identifier, vision.ContractHandler.ContractAddress);
+                        entities.TryAdd(stratML.StrategicPlanCore.Vision.Identifier, EntityTypes.Vision);
                         await plan.UpdateVisionRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.UpdateVisionFunction
                         {
-                            Vision = vision.ContractHandler.ContractAddress
+                            Vision = vision.ContractHandler.ContractAddress,
+                            Gas = 10000000,
+                            GasPrice = gas
                         }); 
                     }
                 }
-                foreach(var val in stratML.StrategicPlanCore.Value)
+                foreach(var val in stratML.StrategicPlanCore.Value ?? [])
                 {
                     await plan.AddValueRequestAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.AddValueFunction
                     {
-                        Name = val.Name ?? "",
-                        Description = val.Description ?? ""
+                        Name = val.Name ?? " ",
+                        Description = val.Description ?? " ",
+                        Gas = 10000000,
+                        GasPrice = gas
                     });
                 }
-                foreach(var goal in stratML.StrategicPlanCore.Goal)
+                foreach(var goal in stratML.StrategicPlanCore.Goal ?? [])
                 {
                     var g = await GoalService.DeployContractAndGetServiceAsync(W3, new GoalDeployment
                     {
                         Registry = registryAddress,
-                        Description = goal.Description ?? "",
-                        Name = goal.Name ?? "",
-                        SequenceIndicator = goal.SequenceIndicator ?? "",
-                        OtherInformation = goal.OtherInformation ?? ""
+                        Description = goal.Description ?? " ",
+                        Name = goal.Name ?? " ",
+                        SequenceIndicator = goal.SequenceIndicator ?? " ",
+                        OtherInformation = goal.OtherInformation ?? " ",
+                        Gas = 10000000,
+                        GasPrice = gas
                     });
-                    if(g != null)
+                    if (g != null)
                     {
-                        goal.Identifier ??= Guid.NewGuid().ToString();
-                        idToAddress.Add(goal.Identifier, g.ContractHandler.ContractAddress);
-                        entities.Add(goal.Identifier, EntityTypes.Goal);
+                        if (string.IsNullOrEmpty(goal.Identifier))
+                            goal.Identifier = Guid.NewGuid().ToString();
+                        idToAddress.TryAdd(goal.Identifier, g.ContractHandler.ContractAddress);
+                        entities.TryAdd(goal.Identifier, EntityTypes.Goal);
                         await plan.AddGoalRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.AddGoalFunction()
                         {
-                            GoalAddress = g.ContractHandler.ContractAddress
+                            GoalAddress = g.ContractHandler.ContractAddress,
+                            Gas = 10000000,
+                            GasPrice = gas
                         });
-                        foreach(var stakeholder in goal.Stakeholder)
+                        foreach(var stakeholder in goal.Stakeholder ?? [])
                         {
-                            if(stakleholdersNamesToAddress.TryGetValue(stakeholder.Name, out string? address))
+                            if (stakleholdersNamesToAddress.TryGetValue(stakeholder.Name, out string? address))
                                 await g.AddStakeholderRequestAndWaitForReceiptAsync(new Contracts.Goal.ContractDefinition.AddStakeholderFunction
                                 {
-                                    StakeholderAddress = address
+                                    StakeholderAddress = address,
+                                    Gas = 10000000,
+                                    GasPrice = gas
                                 });
                         }
-                        foreach(var obj in goal.Objective)
+                        foreach(var obj in goal.Objective ?? [])
                         {
                             var o = await ObjectiveService.DeployContractAndGetServiceAsync(W3, new ObjectiveDeployment()
                             {
                                 Registry = registryAddress,
-                                Description = obj.Description ?? "",
-                                Name = obj.Name ?? "",
-                                SequenceIndicator = obj.SequenceIndicator ?? "",
-                                OtherInformation = obj.OtherInformation ?? ""
+                                Description = obj.Description ?? " ",
+                                Name = obj.Name ?? " ",
+                                SequenceIndicator = obj.SequenceIndicator ?? " ",
+                                OtherInformation = obj.OtherInformation ?? " ",
+                                Gas = 10000000,
+                                GasPrice = gas
                             });
-                            if(o != null)
+                            if (o != null)
                             {
-                                obj.Identifier ??= Guid.NewGuid().ToString();
-                                idToAddress.Add(obj.Identifier, o.ContractHandler.ContractAddress);
-                                entities.Add(obj.Identifier, EntityTypes.Objective);
+                                if (string.IsNullOrEmpty(obj.Identifier))
+                                    obj.Identifier = Guid.NewGuid().ToString();
+                                idToAddress.TryAdd(obj.Identifier, o.ContractHandler.ContractAddress);
+                                entities.TryAdd(obj.Identifier, EntityTypes.Objective);
                                 await g.AddObjectiveRequestAndWaitForReceiptAsync(new Contracts.Goal.ContractDefinition.AddObjectiveFunction()
                                 {
-                                    ObjectiveAddress = o.ContractHandler.ContractAddress
+                                    ObjectiveAddress = o.ContractHandler.ContractAddress,
+                                    Gas = 10000000,
+                                    GasPrice = gas
                                 });
-                                foreach(var stakeholder in obj.Stakeholder)
+                                foreach(var stakeholder in obj.Stakeholder ?? [])
                                 {
-                                    if(stakleholdersNamesToAddress.TryGetValue(stakeholder.Name, out string? address))
+                                    if (stakleholdersNamesToAddress.TryGetValue(stakeholder.Name, out string? address))
                                         await o.AddStakeholderRequestAndWaitForReceiptAsync(new Contracts.Objective.ContractDefinition.AddStakeholderFunction
                                         {
-                                            StakeholderAddress = address
+                                            StakeholderAddress = address,
+                                            Gas = 10000000,
+                                            GasPrice = gas
                                         });
                                 }
-                                foreach(var pi in obj.PerformanceIndicator)
+                                foreach(var pi in obj.PerformanceIndicator ?? [])
                                 {
                                     var p = await PerformanceIndicatorService.DeployContractAndGetServiceAsync(W3, new PerformanceIndicatorDeployment()
                                     {
                                         Registry = registryAddress,
-                                        MeasurementDimension = pi.MeasurementDimension ?? "",
-                                        UnitOfMeasurement = pi.UnitOfMeasurement ?? "",
+                                        MeasurementDimension = pi.MeasurementDimension ?? " ",
+                                        UnitOfMeasurement = pi.UnitOfMeasurement ?? " ",
                                         PerfomanceIndicator = (byte)pi.PerformanceIndicatorType,
                                         VauleChangeStage = (byte)pi.ValueChainStage,
-                                        SequenceIndicator = pi.SequenceIndicator ?? "",
-                                        OtherInformation = pi.OtherInformation ?? ""
+                                        SequenceIndicator = pi.SequenceIndicator ?? " ",
+                                        OtherInformation = pi.OtherInformation ?? " ",
+                                        Gas = 10000000,
+                                        GasPrice = gas
                                     });
-                                    if(p != null)
+                                    if (p != null)
                                     {
-                                        pi.Identifier ??= Guid.NewGuid().ToString();
-                                        idToAddress.Add(pi.Identifier, p.ContractHandler.ContractAddress);
-                                        entities.Add(pi.Identifier, EntityTypes.PerformanceIndicator);
+                                        if (string.IsNullOrEmpty(pi.Identifier))
+                                            pi.Identifier = Guid.NewGuid().ToString();
+                                        idToAddress.TryAdd(pi.Identifier, p.ContractHandler.ContractAddress);
+                                        entities.TryAdd(pi.Identifier, EntityTypes.PerformanceIndicator);
                                         await o.AddPerformanceIndicatorRequestAndWaitForReceiptAsync(new Contracts.Objective.ContractDefinition.AddPerformanceIndicatorFunction()
                                         {
-                                            PerformanceIndicatorAddress = p.ContractHandler.ContractAddress
+                                            PerformanceIndicatorAddress = p.ContractHandler.ContractAddress,
+                                            Gas = 10000000,
+                                            GasPrice = gas
                                         });
-                                        foreach(var mi in pi.MeasurementInstance)
+                                        foreach(var mi in pi.MeasurementInstance ?? [])
                                         {
                                             await p.AddMeasurementInstanceRequestAndWaitForReceiptAsync(new Contracts.PerformanceIndicator.ContractDefinition.AddMeasurementInstanceFunction()
                                             {
                                                 MeasurementInstance = new Contracts.PerformanceIndicator.ContractDefinition.MeasurementInstance()
                                                 {
-                                                    ActualResults = mi.ActualResult.Select(ar => new Contracts.PerformanceIndicator.ContractDefinition.ActualResult()
+                                                    ActualResults = mi.ActualResult == null ? [] : mi.ActualResult.Select(ar => new Contracts.PerformanceIndicator.ContractDefinition.ActualResult()
                                                     {
-                                                        StartDate = ar.StartDate != null ? new DateTimeOffset(DateTime.Parse(ar.StartDate)).ToUnixTimeSeconds() : 0,
-                                                        EndDate = ar.EndDate != null ? new DateTimeOffset(DateTime.Parse(ar.EndDate)).ToUnixTimeSeconds() : 0,
+                                                        StartDate = !string.IsNullOrEmpty(ar.StartDate) ? new DateTimeOffset(DateTime.Parse(ar.StartDate)).ToUnixTimeSeconds() : 0,
+                                                        EndDate = !string.IsNullOrEmpty(ar.EndDate) ? new DateTimeOffset(DateTime.Parse(ar.EndDate)).ToUnixTimeSeconds() : 0,
                                                         NumberOfUnits = ConvertToDecimal(ar.NumberOfUnits),
                                                         Descriptor = new Contracts.PerformanceIndicator.ContractDefinition.Descriptor()
                                                         {
-                                                            Value = ar.Descriptor.DescriptorValue ?? "",
-                                                            Name = ar.Descriptor.DescriptorName ?? ""
+                                                            Value = ar.Descriptor.DescriptorValue ?? " ",
+                                                            Name = ar.Descriptor.DescriptorName ?? " "
                                                         },
                                                         Description = ar.Description
                                                     }).ToList(),
-                                                    TargetResults = mi.TargetResult.Select(tr => new Contracts.PerformanceIndicator.ContractDefinition.TargetResult()
+                                                    TargetResults = mi.TargetResult == null ? [] : mi.TargetResult.Select(tr => new Contracts.PerformanceIndicator.ContractDefinition.TargetResult()
                                                     {
-                                                        StartDate = tr.StartDate != null ? new DateTimeOffset(DateTime.Parse(tr.StartDate)).ToUnixTimeSeconds() : 0,
-                                                        EndDate = tr.EndDate != null ? new DateTimeOffset(DateTime.Parse(tr.EndDate)).ToUnixTimeSeconds() : 0,
+                                                        StartDate = !string.IsNullOrEmpty(tr.StartDate) ? new DateTimeOffset(DateTime.Parse(tr.StartDate)).ToUnixTimeSeconds() : 0,
+                                                        EndDate = !string.IsNullOrEmpty(tr.EndDate) ? new DateTimeOffset(DateTime.Parse(tr.EndDate)).ToUnixTimeSeconds() : 0,
                                                         NumberOfUnits = ConvertToDecimal(tr.NumberOfUnits),
                                                         Descriptor = new Contracts.PerformanceIndicator.ContractDefinition.Descriptor()
                                                         {
-                                                            Value = tr.Descriptor.DescriptorValue ?? "",
-                                                            Name = tr.Descriptor.DescriptorName ?? ""
+                                                            Value = tr.Descriptor.DescriptorValue ?? " ",
+                                                            Name = tr.Descriptor.DescriptorName ?? " "
                                                         },
                                                         Description = tr.Description
                                                     }).ToList()
-                                                }
+                                                },
+                                                Gas = 10000000,
+                                                GasPrice = gas
                                             });
                                         }
                                     }
@@ -414,53 +493,60 @@ namespace StratML.Blockchain
                         }
                     }
                 }
-                foreach(var goal in stratML.StrategicPlanCore.Goal)
+                foreach(var goal in stratML.StrategicPlanCore.Goal ?? [])
                 {
-                    foreach(var obj in goal.Objective)
+                    foreach(var obj in goal.Objective ?? [])
                     {
-                        foreach(var pi in obj.PerformanceIndicator)
+                        foreach(var pi in obj.PerformanceIndicator ?? [])
                         {
                             PerformanceIndicatorService pis = new PerformanceIndicatorService(W3, idToAddress[pi.Identifier]);
-                            foreach(var rel in pi.Relationship)
+                            foreach(var rel in pi.Relationship ?? [])
                             {
                                 var r = await RelationshipService.DeployContractAndGetServiceAsync(W3, new RelationshipDeployment()
                                 {
                                     Registry = registryAddress,
-                                    Description = rel.Description ?? "",
+                                    Description = rel.Description ?? " ",
                                     RelationshipType = (byte)rel.RelationshipType,
-                                    Name = rel.Name
+                                    Name = rel.Name,
+                                    Gas = 10000000,
+                                    GasPrice = gas
                                 });
                                 if(r != null)
                                 {
-                                    rel.Identifier ??= Guid.NewGuid().ToString();
-                                    idToAddress.Add(rel.Identifier, r.ContractHandler.ContractAddress);
-                                    entities.Add(rel.Identifier, EntityTypes.Relationship);
+                                    if(string.IsNullOrEmpty(rel.Identifier))
+                                        rel.Identifier = Guid.NewGuid().ToString();
+                                    idToAddress.TryAdd(rel.Identifier, r.ContractHandler.ContractAddress);
+                                    entities.TryAdd(rel.Identifier, EntityTypes.Relationship);
                                     await pis.AddRelationshipRequestAndWaitForReceiptAsync(new Contracts.PerformanceIndicator.ContractDefinition.AddRelationshipFunction()
                                     {
-                                        RelationshipAddress = r.ContractHandler.ContractAddress
+                                        RelationshipAddress = r.ContractHandler.ContractAddress,
+                                        Gas = 10000000,
+                                        GasPrice = gas
                                     });
                                 }
                             }
                         }
                     }
                 }
-                foreach (var goal in stratML.StrategicPlanCore.Goal)
+                foreach (var goal in stratML.StrategicPlanCore.Goal ?? [])
                 {
-                    foreach (var obj in goal.Objective)
+                    foreach (var obj in goal.Objective ?? [])
                     {
-                        foreach (var pi in obj.PerformanceIndicator)
+                        foreach (var pi in obj.PerformanceIndicator ?? [])
                         {
-                            foreach (var rel in pi.Relationship)
+                            foreach (var rel in pi.Relationship ?? [])
                             {
                                 RelationshipService rs = new RelationshipService(W3, idToAddress[rel.Identifier]);
-                                foreach (var rf in rel.ReferentIdentifier)
+                                foreach (var rf in rel.ReferentIdentifier ?? [])
                                 {
                                     if (idToAddress.TryGetValue(rf, out string? address))
                                     {
                                         await rs.AddReferenceRequestAndWaitForReceiptAsync(new Contracts.Relationship.ContractDefinition.AddReferenceFunction()
                                         {
                                             Identifier = address,
-                                            EntityType = (byte)entities[rf]
+                                            EntityType = (byte)entities[rf],
+                                            Gas = 10000000,
+                                            GasPrice = gas
                                         });
                                     }
                                 }
