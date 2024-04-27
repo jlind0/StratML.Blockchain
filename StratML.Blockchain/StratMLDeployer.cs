@@ -32,6 +32,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
@@ -590,6 +591,7 @@ namespace StratML.Blockchain
 
         public async Task<PerformancePlanOrReport?> Load(string address, CancellationToken token = default)
         {
+            RateLimitter limitter = new RateLimitter();
             PerfomancePlanOrReportService service = new PerfomancePlanOrReportService(W3, address);
             var report = await service.GetPerfomancePlanOrReportResponseQueryAsync();
             if(report == null || report.ReturnValue1 == null)
@@ -625,6 +627,7 @@ namespace StratML.Blockchain
             stratML.StrategicPlanCore = new StrategicPlanCore();
             foreach(var org in doc.StrategeticPlanCore.Organizations)
             {
+                await limitter.Wait();
                 var os = new OrganizationService(W3, org.Identifier);
                 var od = (await os.GetOrganizationResponseQueryAsync()).ReturnValue1;
                 
@@ -648,6 +651,7 @@ namespace StratML.Blockchain
                     foreach(var role in sh.Roles)
                     {
                         var rs = new RoleService(W3, role.Identifier);
+                        await limitter.Wait();
                         var r = (await rs.GetRoleQueryAsync()).ReturnValue1;
                         roles.Add(new Role()
                         {
@@ -681,6 +685,7 @@ namespace StratML.Blockchain
             List<Goal> goals = new List<Goal>();
             foreach(var goal in doc.StrategeticPlanCore.Goals)
             {
+                await limitter.Wait();
                 var gs = new GoalService(W3, goal.Identifier);
                 var g = (await gs.GetGoalResponseQueryAsync()).ReturnValue1;
                 Goal gl = new Goal()
@@ -696,6 +701,7 @@ namespace StratML.Blockchain
                 {
                     var ss = new StakeholderService(W3, sh.Identifier);
                     var s = (await ss.GetStakeholderQueryAsync()).ReturnValue1;
+                    await limitter.Wait();
                     var stake = new Stakeholder()
                     {
                         Name = s.Base.Name,
@@ -720,7 +726,9 @@ namespace StratML.Blockchain
                 foreach(var obj in g.Objectives)
                 {
                     var os = new ObjectiveService(W3, obj.Identifier);
+                    await limitter.Wait();
                     var o = (await os.GetObjectiveResponseQueryAsync()).ReturnValue1;
+
                     var objective = new ObjectiveType()
                     {
                         Name = o.Base.Name,
@@ -732,6 +740,7 @@ namespace StratML.Blockchain
                     List<Stakeholder> objStakeholders = new List<Stakeholder>();
                     foreach(var sh in o.Stakeholders)
                     {
+                        await limitter.Wait();
                         var ss = new StakeholderService(W3, sh.Identifier);
                         var s = (await ss.GetStakeholderQueryAsync()).ReturnValue1;
                         var stake = new Stakeholder()
@@ -757,6 +766,7 @@ namespace StratML.Blockchain
                     List<PerformanceIndicator> performanceIndicators = new List<PerformanceIndicator>();
                     foreach(var pi in o.Base.PerfomanceIndicators)
                     {
+                        await limitter.Wait();
                         var pis = new PerformanceIndicatorService(W3, pi.Identifier);
                         var p = (await pis.GetPerformanceIndicatorQueryAsync()).ReturnValue1;
                         var perf = new PerformanceIndicator()
@@ -799,6 +809,7 @@ namespace StratML.Blockchain
                         List<Relationship> rls = new List<Relationship>();
                         foreach(var refr in pi.Relationships)
                         {
+                            await limitter.Wait();
                             var rs = new RelationshipService(W3, refr.Identifier);
                             var r = (await rs.GetRelationshipQueryAsync()).ReturnValue1;
                             var rel = new Relationship()
@@ -826,6 +837,29 @@ namespace StratML.Blockchain
             }
             stratML.StrategicPlanCore.Goal = goals.ToArray();
             return stratML;
+        }
+    }
+    public class RateLimitter
+    {
+        protected long Count { get; set; } = 0;
+        protected Stopwatch Timer { get; } = new Stopwatch();
+        public RateLimitter()
+        {
+            Timer.Start();
+        }
+        public async Task Wait()
+        {
+            Count++;
+            if (Count > 7)
+            { 
+                long ms = Timer.ElapsedMilliseconds;
+                if (ms < 12000)
+                {
+                    await Task.Delay(12000 - (int)ms);
+                }
+                Count = 0;
+                Timer.Restart();
+            }
         }
     }
 }
