@@ -68,14 +68,14 @@ namespace StratML.Blockchain
             ConcurrentDictionary<string, string> roleNamesToAddress = new ConcurrentDictionary<string, string>();
             ConcurrentDictionary<string, string> idToAddress = new ConcurrentDictionary<string, string>();
             ConcurrentDictionary<string, EntityTypes> entities = new ConcurrentDictionary<string, EntityTypes>();
-            foreach(var org in stratML.StrategicPlanCore.Organization)
+            foreach(var org in stratML.StrategicPlanCore.Organization ?? [])
             {
-                foreach(var stakeholder in org.Stakeholder)
+                foreach(var stakeholder in org.Stakeholder ?? [])
                 {
                     if (string.IsNullOrEmpty(stakeholder.Name))
                         stakeholder.Name = Guid.NewGuid().ToString();
                     stakeholders.TryAdd(stakeholder.Name, stakeholder);
-                    foreach(var role in stakeholder.Role)
+                    foreach(var role in stakeholder.Role ?? [])
                     {
                         if(string.IsNullOrEmpty(role.Name))
                             role.Name = Guid.NewGuid().ToString();
@@ -84,16 +84,16 @@ namespace StratML.Blockchain
                     }
                 }
             }
-            foreach(var goal in stratML.StrategicPlanCore.Goal)
+            foreach(var goal in stratML.StrategicPlanCore.Goal ?? [])
             {
-                foreach(var stakeholder in goal.Stakeholder)
+                foreach(var stakeholder in goal.Stakeholder ?? [])
                 {
                     if (string.IsNullOrEmpty(stakeholder.Name))
                         stakeholder.Name = Guid.NewGuid().ToString();
                     if(!stakeholders.ContainsKey(stakeholder.Name))
                     {
                         stakeholders.TryAdd(stakeholder.Name, stakeholder);
-                        foreach(var role in stakeholder.Role)
+                        foreach(var role in stakeholder.Role ?? [])
                         {
                             if(string.IsNullOrEmpty(role.Name))
                                 role.Name = Guid.NewGuid().ToString();
@@ -104,9 +104,9 @@ namespace StratML.Blockchain
                         }
                     }
                 }
-                foreach(var obj in goal.Objective)
+                foreach(var obj in goal.Objective ?? [])
                 {
-                    foreach(var stakeholder in obj.Stakeholder)
+                    foreach(var stakeholder in obj.Stakeholder ?? [])
                     {
                         if (string.IsNullOrEmpty(stakeholder.Name))
                             stakeholder.Name = Guid.NewGuid().ToString();
@@ -114,7 +114,7 @@ namespace StratML.Blockchain
                         {
                             stakeholders.TryAdd(stakeholder.Name, stakeholder);
                         }
-                        foreach (var role in stakeholder.Role)
+                        foreach (var role in stakeholder.Role ?? [])
                         {
                             if(!string.IsNullOrEmpty(role.Name))
                                 role.Name = Guid.NewGuid().ToString();

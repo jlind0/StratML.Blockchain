@@ -19,7 +19,7 @@ return w3;
 });
 builder.Services.AddSingleton<IStratMLDeployer, StratMLDeployer>();
 var app = builder.Build();
-
+app.UseDeveloperExceptionPage();
 app.UseSwagger();
 app.UseSwaggerUI();
 
