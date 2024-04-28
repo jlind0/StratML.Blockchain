@@ -241,13 +241,13 @@ abstract contract OwnableOrSiblings is Ownable{
 contract StratMLRegistry{
     using BokkyPooBahsDateTimeLibrary for uint;
     address[] roles;
-    mapping(bytes => address[]) roleMap;
+    mapping(bytes32 => address[]) roleMap;
     address[] stakeholders;
-    mapping(bytes => address[]) stakeholderMap;
+    mapping(bytes32 => address[]) stakeholderMap;
     address[] organizations;
-    mapping(bytes => address[]) organizationMap;
+    mapping(bytes32 => address[]) organizationMap;
     address[] perfomancePlanOrReports;
-    mapping(bytes => address[]) perfomancePlanOrReportMap;
+    mapping(bytes32 => address[]) perfomancePlanOrReportMap;
     mapping(uint => address[]) perfomancePlanOrReportByStartDate;
     mapping(address => uint) perfomancePlanOrReportEndDate;
     mapping(uint => address[]) perfomancePlanOrReportByPublicationDate;
@@ -263,7 +263,7 @@ contract StratMLRegistry{
         }
         roles.push(role);
         Role roleInstance = Role(role);
-        roleMap[abi.encodePacked(roleInstance.name())].push(role);
+        roleMap[keccak256(abi.encodePacked(roleInstance.name()))].push(role);
         emit RoleAdded(role);
     }
     function removeRole(address role) public{
@@ -274,7 +274,7 @@ contract StratMLRegistry{
         _removeAddressFromArray(roles, role);
 
         
-        bytes memory roleName = abi.encodePacked(roleInstance.name());
+        bytes32 roleName = keccak256(abi.encodePacked(roleInstance.name()));
         _removeAddressFromArray(roleMap[roleName], role);
     }
     function getAllRoles() public view returns(RoleResponse[] memory){
@@ -286,7 +286,7 @@ contract StratMLRegistry{
         return response;   
     }
     function getRolesByName(string memory name) public view returns(RoleResponse[] memory){
-        bytes memory roleName = abi.encodePacked(name);
+        bytes32 roleName = keccak256(abi.encodePacked(name));
         RoleResponse[] memory response = new RoleResponse[](roleMap[roleName].length);
         for(uint i = 0; i < roleMap[roleName].length; i++){
             Role role = Role(roleMap[roleName][i]);
@@ -297,9 +297,9 @@ contract StratMLRegistry{
     function updateRoleIndexer(address role, string memory oldName) public{
         Role roleInstance = Role(role);
         require(roleInstance.isSibling(msg.sender));
-        bytes memory oldRoleName = abi.encodePacked(oldName);
-        bytes memory newRoleName = abi.encodePacked(roleInstance.name());
-        if(keccak256(oldRoleName) != keccak256(newRoleName)){
+        bytes32 oldRoleName = keccak256(abi.encodePacked(oldName));
+        bytes32 newRoleName = keccak256(abi.encodePacked(roleInstance.name()));
+        if(oldRoleName!= newRoleName){
             _removeAddressFromArray(roleMap[oldRoleName], role);
             roleMap[newRoleName].push(role);
         }
@@ -312,7 +312,7 @@ contract StratMLRegistry{
         }
         stakeholders.push(stakeholder);
         Stakeholder stakeholderInstance = Stakeholder(stakeholder);
-        stakeholderMap[abi.encodePacked(stakeholderInstance.name())].push(stakeholder);
+        stakeholderMap[keccak256(abi.encodePacked(stakeholderInstance.name()))].push(stakeholder);
         emit StakeholderAdded(stakeholder);
     }
     function removeStakeholder(address stakeholder) public{
@@ -323,7 +323,7 @@ contract StratMLRegistry{
 
         // Remove from stakeholderMap
         
-        bytes memory stakeholderName = abi.encodePacked(stakeholderInstance.name());
+        bytes32 stakeholderName = keccak256(abi.encodePacked(stakeholderInstance.name()));
         _removeAddressFromArray(stakeholderMap[stakeholderName], stakeholder);
     }
     function getAllStakeholders() public view returns(StakeholderResponse[] memory){
@@ -335,7 +335,7 @@ contract StratMLRegistry{
         return response;   
     }
     function getStakeholdersByName(string memory name) public view returns(StakeholderResponse[] memory){
-        bytes memory stakeholderName = abi.encodePacked(name);
+        bytes32 stakeholderName = keccak256(abi.encodePacked(name));
         StakeholderResponse[] memory response = new StakeholderResponse[](stakeholderMap[stakeholderName].length);
         for(uint i = 0; i < stakeholderMap[stakeholderName].length; i++){
             Stakeholder stakeholder = Stakeholder(stakeholderMap[stakeholderName][i]);
@@ -346,9 +346,9 @@ contract StratMLRegistry{
     function updateStakeholderIndexer(address stakeholder, string memory oldName) public{
         Stakeholder stakeholderInstance = Stakeholder(stakeholder);
         require(stakeholderInstance.isSibling(msg.sender));
-        bytes memory oldStakeholderName = abi.encodePacked(oldName);
-        bytes memory newStakeholderName = abi.encodePacked(stakeholderInstance.name());
-        if(keccak256(oldStakeholderName) != keccak256(newStakeholderName)){
+        bytes32 oldStakeholderName = keccak256(abi.encodePacked(oldName));
+        bytes32 newStakeholderName = keccak256(abi.encodePacked(stakeholderInstance.name()));
+        if(oldStakeholderName != newStakeholderName){
             _removeAddressFromArray(stakeholderMap[oldStakeholderName], stakeholder);
             stakeholderMap[newStakeholderName].push(stakeholder);
         }
@@ -361,7 +361,7 @@ contract StratMLRegistry{
         }
         organizations.push(organization);
         Organization organizationInstance = Organization(organization);
-        organizationMap[abi.encodePacked(organizationInstance.name())].push(organization);
+        organizationMap[keccak256(abi.encodePacked(organizationInstance.name()))].push(organization);
         emit OrganizationAdded(organization);
     }
     function removeOrganization(address organization) public{
@@ -372,7 +372,7 @@ contract StratMLRegistry{
 
         // Remove from organizationMap
         
-        bytes memory organizationName = abi.encodePacked(organizationInstance.name());
+        bytes32 organizationName = keccak256(abi.encodePacked(organizationInstance.name()));
         _removeAddressFromArray(organizationMap[organizationName], organization);
     }
     function getAllOrganizations() public view returns(OrganizationResponse[] memory){
@@ -384,7 +384,7 @@ contract StratMLRegistry{
         return response;   
     }
     function getOrganizationsByName(string memory name) public view returns(OrganizationResponse[] memory){
-        bytes memory organizationName = abi.encodePacked(name);
+        bytes32 organizationName = keccak256(abi.encodePacked(name));
         OrganizationResponse[] memory response = new OrganizationResponse[](organizationMap[organizationName].length);
         for(uint i = 0; i < organizationMap[organizationName].length; i++){
             Organization organization = Organization(organizationMap[organizationName][i]);
@@ -395,9 +395,9 @@ contract StratMLRegistry{
     function updateOrganizationIndexer(address organization, string memory oldName) public{
         Organization organizationInstance = Organization(organization);
         require(organizationInstance.isSibling(msg.sender));
-        bytes memory oldOrganizationName = abi.encodePacked(oldName);
-        bytes memory newOrganizationName = abi.encodePacked(organizationInstance.name());
-        if(keccak256(oldOrganizationName) != keccak256(newOrganizationName)){
+        bytes32 oldOrganizationName = keccak256(abi.encodePacked(oldName));
+        bytes32 newOrganizationName = keccak256(abi.encodePacked(organizationInstance.name()));
+        if(oldOrganizationName != newOrganizationName){
             _removeAddressFromArray(organizationMap[oldOrganizationName], organization);
             organizationMap[newOrganizationName].push(organization);
         }
@@ -414,7 +414,7 @@ contract StratMLRegistry{
         }
         perfomancePlanOrReports.push(perfomancePlanOrReport);
         PerfomancePlanOrReport perfomancePlanOrReportInstance = PerfomancePlanOrReport(perfomancePlanOrReport);
-        perfomancePlanOrReportMap[abi.encodePacked(perfomancePlanOrReportInstance.name())].push(perfomancePlanOrReport);
+        perfomancePlanOrReportMap[keccak256(abi.encodePacked(perfomancePlanOrReportInstance.name()))].push(perfomancePlanOrReport);
         AdministrativeInformationResponse memory administrativeInformation = perfomancePlanOrReportInstance.getAdministrativeInformation();
         if(administrativeInformation.startDate != 0)
             perfomancePlanOrReportByStartDate[boxDateTime(administrativeInformation.startDate)].push(perfomancePlanOrReport);
@@ -432,7 +432,7 @@ contract StratMLRegistry{
 
         // Remove from perfomancePlanOrReportMap
         AdministrativeInformationResponse memory administrativeInformation = perfomancePlanOrReportInstance.getAdministrativeInformation();
-        bytes memory perfomancePlanOrReportName = abi.encodePacked(perfomancePlanOrReportInstance.name());
+        bytes32 perfomancePlanOrReportName = keccak256(abi.encodePacked(perfomancePlanOrReportInstance.name()));
         _removeAddressFromArray(perfomancePlanOrReportMap[perfomancePlanOrReportName], perfomancePlanOrReport);
         if(administrativeInformation.startDate != 0)
             _removeAddressFromArray(perfomancePlanOrReportByStartDate[boxDateTime(administrativeInformation.startDate)], perfomancePlanOrReport);
@@ -449,7 +449,7 @@ contract StratMLRegistry{
         return response;   
     }
     function getPerfomancePlanOrReportsByName(string memory name) public view returns(PerfomancePlanOrReportResponse[] memory){
-        bytes memory perfomancePlanOrReportName = abi.encodePacked(name);
+        bytes32 perfomancePlanOrReportName = keccak256(abi.encodePacked(name));
         PerfomancePlanOrReportResponse[] memory response = new PerfomancePlanOrReportResponse[](perfomancePlanOrReportMap[perfomancePlanOrReportName].length);
         for(uint i = 0; i < perfomancePlanOrReportMap[perfomancePlanOrReportName].length; i++){
             PerfomancePlanOrReport perfomancePlanOrReport = PerfomancePlanOrReport(perfomancePlanOrReportMap[perfomancePlanOrReportName][i]);
@@ -460,9 +460,9 @@ contract StratMLRegistry{
     function updatePerfomancePlanOrReportIndexer(address perfomancePlanOrReport, string memory oldName, uint oldStartDate, uint oldEndDate, uint oldPublicationDate) public{
         PerfomancePlanOrReport perfomancePlanOrReportInstance = PerfomancePlanOrReport(perfomancePlanOrReport);
         require(perfomancePlanOrReportInstance.owner() == msg.sender);
-        bytes memory oldPerfomancePlanOrReportName = abi.encodePacked(oldName);
-        bytes memory newPerfomancePlanOrReportName = abi.encodePacked(perfomancePlanOrReportInstance.name());
-        if(keccak256(oldPerfomancePlanOrReportName) != keccak256(newPerfomancePlanOrReportName)){
+        bytes32 oldPerfomancePlanOrReportName = keccak256(abi.encodePacked(oldName));
+        bytes32 newPerfomancePlanOrReportName = keccak256(abi.encodePacked(perfomancePlanOrReportInstance.name()));
+        if(oldPerfomancePlanOrReportName != newPerfomancePlanOrReportName){
             _removeAddressFromArray(perfomancePlanOrReportMap[oldPerfomancePlanOrReportName], perfomancePlanOrReport);
             perfomancePlanOrReportMap[newPerfomancePlanOrReportName].push(perfomancePlanOrReport);
         }

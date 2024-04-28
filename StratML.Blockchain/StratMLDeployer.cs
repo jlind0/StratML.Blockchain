@@ -31,6 +31,7 @@ using StratML.Core;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
@@ -53,9 +54,9 @@ namespace StratML.Blockchain
             Logger = logger;
         }
 
-        public async Task<string?> DeployStratML(string registryAddress, PerformancePlanOrReport stratML, CancellationToken token = default)
+        public async Task<string?> DeployStratML(string registryAddress, PerformancePlanOrReport stratML, IProgress<ProgressReport>? progress = null, CancellationToken token = default)
         {
-            var gas = (long)Math.Floor(((long)(await W3.Eth.GasPrice.SendRequestAsync()).Value)*1.1m);
+            var gas = (long)Math.Floor(((long)(await W3.Eth.GasPrice.SendRequestAsync()).Value)*1.15m);
             StratMLRegistryService registryService = new StratMLRegistryService(W3, registryAddress);
             if(stratML == null)
             {
@@ -126,12 +127,19 @@ namespace StratML.Blockchain
                     }
                 }
             }
-            foreach(var role in roles.Values)
+            progress?.Report(new ProgressReport()
             {
+                Percent = 0,
+                Status = "Deploying Roles"
+            });
+            await Parallel.ForEachAsync(roles.Values, async (role, t) =>
+            {
+                
                 var rs = await registryService.GetRolesByNameQueryAsync(role.Name);
                 var ro = rs.ReturnValue1.FirstOrDefault();
                 if (ro == null)
                 {
+                    
                     var r = await RoleService.DeployContractAndWaitForReceiptAsync(W3, new RoleDeployment
                     {
                         Registry = registryAddress,
@@ -153,15 +161,22 @@ namespace StratML.Blockchain
                     roleNamesToAddress.TryAdd(role.Name, ro.Base.Identifier);
                     entities.TryAdd(ro.Base.Identifier, EntityTypes.Role);
                 }
-            }
-            foreach(var stakeholder in stakeholders.Values)
+            });
+            progress?.Report(new ProgressReport()
+            {
+                Percent = 10,
+                Status = "Deploying Stakeholders"
+            });
+            await Parallel.ForEachAsync(stakeholders.Values, async (stakeholder, t) =>
             {
                 if (stakeholder.Name == null)
-                    continue;
+                    return;
+                
                 var sh = await registryService.GetStakeholdersByNameQueryAsync(stakeholder.Name);
                 var sho = sh.ReturnValue1.FirstOrDefault();
                 if (sho == null)
                 {
+                    
                     var s = await StakeholderService.DeployContractAndGetServiceAsync(W3, new StakeholderDeployment
                     {
                         Name = stakeholder.Name ?? " ",
@@ -175,8 +190,9 @@ namespace StratML.Blockchain
                     if (s != null)
                     {
                         stakleholdersNamesToAddress.TryAdd(stakeholder.Name, s.ContractHandler.ContractAddress);
-                        foreach(var role in stakeholder.Role ?? [])
+                        await Parallel.ForEachAsync(stakeholder.Role ?? [], async (role, t) =>
                         {
+                            
                             RoleService rs = new RoleService(W3, roleNamesToAddress[role.Name]);
                             await rs.AddStakeholderRequestAndWaitForReceiptAsync(new Contracts.Role.ContractDefinition.AddStakeholderFunction
                             {
@@ -184,34 +200,23 @@ namespace StratML.Blockchain
                                 Gas = 10000000,
                                 GasPrice = gas
                             });
-                        }
+                        });
                     }
                 }
                 else
                 {
                     stakleholdersNamesToAddress.TryAdd(stakeholder.Name, sho.Base.Identifier);
                 }
-            }
-            var plan = await PerfomancePlanOrReportService.DeployContractAndGetServiceAsync(W3, new PerfomancePlanOrReportDeployment
-            {
-                Registry = registryAddress,
-                Name = stratML.Name ?? " ",
-                Description = stratML.Description ?? " ",
-                ReportType = (byte)stratML.Type,
-                OtherInformation = stratML.OtherInformation ?? " ",
-                Gas = 10000000,
-                GasPrice = gas
-
             });
-            await registryService.AddPerfomancePlanOrReportRequestAndWaitForReceiptAsync(new Contracts.StratMLRegistry.ContractDefinition.AddPerfomancePlanOrReportFunction
+            progress?.Report(new ProgressReport()
             {
-                PerfomancePlanOrReport = plan.ContractHandler.ContractAddress,
-                Gas = 10000000,
-                GasPrice = gas
+                Percent = 20,
+                Status = "Deploying Plan"
             });
-           
+            string? adminAddress = null;
             if (stratML.AdministrativeInformation != null)
             {
+                
                 var admin = await AdministrativeInformationService.DeployContractAndGetServiceAsync(W3, new AdministrativeInformationDeployment
                 {
                     Registry = registryAddress,
@@ -226,16 +231,39 @@ namespace StratML.Blockchain
                 {
                     if(stratML.AdministrativeInformation.Identifier != null)
                         idToAddress.TryAdd(stratML.AdministrativeInformation.Identifier, admin.ContractHandler.ContractAddress);
-                    await plan.SetAdministrativeInformationRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.SetAdministrativeInformationFunction
-                    {
-                        AdminInfo = admin.ContractHandler.ContractAddress,
-                        Gas = 10000000,
-                        GasPrice = gas
-                    });
+                    adminAddress = admin.ContractHandler.ContractAddress;
+                    
                 }
             }
+            var plan = await PerfomancePlanOrReportService.DeployContractAndGetServiceAsync(W3, new PerfomancePlanOrReportDeployment
+            {
+                Registry = registryAddress,
+                Name = stratML.Name ?? " ",
+                Description = stratML.Description ?? " ",
+                ReportType = (byte)stratML.Type,
+                OtherInformation = stratML.OtherInformation ?? " ",
+                Gas = 10000000,
+                GasPrice = gas
+
+            });
+            if(adminAddress != null)
+                await plan.SetAdministrativeInformationRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.SetAdministrativeInformationFunction
+                {
+                    AdminInfo = adminAddress,
+                    Gas = 10000000,
+                    GasPrice = gas
+                });
+            await registryService.AddPerfomancePlanOrReportRequestAndWaitForReceiptAsync(new Contracts.StratMLRegistry.ContractDefinition.AddPerfomancePlanOrReportFunction
+            {
+                PerfomancePlanOrReport = plan.ContractHandler.ContractAddress,
+                Gas = 10000000,
+                GasPrice = gas
+            });
+           
+            
             if(stratML.Submitter != null)
             {
+                
                 var submitter = await ContactInformationService.DeployContractAndGetServiceAsync(W3, new ContactInformationDeployment
                 {
                     Registry = registryAddress,
@@ -252,6 +280,7 @@ namespace StratML.Blockchain
                         stratML.Submitter.Identifier = Guid.NewGuid().ToString();
                     idToAddress.TryAdd(stratML.Submitter.Identifier, submitter.ContractHandler.ContractAddress);
                     entities.TryAdd(stratML.Submitter.Identifier, EntityTypes.Stakeholder);
+                    
                     await plan.SetsubmitterRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.SetsubmitterFunction
                     {
                         Submitter = submitter.ContractHandler.ContractAddress,
@@ -262,8 +291,14 @@ namespace StratML.Blockchain
             }
             if(stratML.StrategicPlanCore != null)
             {
-                foreach(var org in stratML.StrategicPlanCore.Organization ?? [])
+                progress?.Report(new ProgressReport()
                 {
+                    Percent = 30,
+                    Status = "Deploying Organizations"
+                });
+                await Parallel.ForEachAsync(stratML.StrategicPlanCore.Organization ?? [], async (org, t) =>
+                {
+                    
                     var o = await OrganizationService.DeployContractAndGetServiceAsync(W3, new OrganizationDeployment
                     {
                         Name = org.Name ?? " ",
@@ -279,20 +314,23 @@ namespace StratML.Blockchain
                             org.Identifier = Guid.NewGuid().ToString();
                         idToAddress.TryAdd(org.Identifier, o.ContractHandler.ContractAddress);
                         entities.TryAdd(org.Identifier, EntityTypes.Organization);
+                        
                         await plan.AddOrganizationRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.AddOrganizationFunction
                         {
                             OrganizationAddress = o.ContractHandler.ContractAddress,
                             Gas = 10000000,
                             GasPrice = gas
                         });
+                        
                         await registryService.AddOrganizationRequestAndWaitForReceiptAsync(new Contracts.StratMLRegistry.ContractDefinition.AddOrganizationFunction
                         {
                             Organization = o.ContractHandler.ContractAddress,
                             Gas = 10000000,
                             GasPrice = gas
                         });
-                        foreach(var stakeholder in org.Stakeholder ?? [])
+                        await Parallel.ForEachAsync(org.Stakeholder ?? [], async (stakeholder, t) =>
                         {
+                            
                             if (stakleholdersNamesToAddress.TryGetValue(stakeholder.Name, out string? address))
                                 await o.AddStakeholderRequestAndWaitForReceiptAsync(new Contracts.Organization.ContractDefinition.AddStakeholderFunction
                                 {
@@ -300,11 +338,12 @@ namespace StratML.Blockchain
                                     Gas = 10000000,
                                     GasPrice = gas
                                 });
-                        }
+                        });
                     }
-                }
+                });
                 if(stratML.StrategicPlanCore.Mission != null)
                 {
+                    
                     var mission = await MissionService.DeployContractAndGetServiceAsync(W3, new MissionDeployment
                     {
                         Registry = registryAddress,
@@ -318,6 +357,7 @@ namespace StratML.Blockchain
                             stratML.StrategicPlanCore.Mission.Identifier = Guid.NewGuid().ToString();     
                         idToAddress.TryAdd(stratML.StrategicPlanCore.Mission.Identifier, mission.ContractHandler.ContractAddress);
                         entities.TryAdd(stratML.StrategicPlanCore.Mission.Identifier, EntityTypes.Mission);
+                        
                         await plan.SetMissionRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.SetMissionFunction
                         {
                             Mission = mission.ContractHandler.ContractAddress,
@@ -328,6 +368,7 @@ namespace StratML.Blockchain
                 }
                 if(stratML.StrategicPlanCore.Vision != null)
                 {
+                    
                     var vision = await VisionService.DeployContractAndGetServiceAsync(W3, new VisionDeployment
                     {
                         Registry = registryAddress,
@@ -341,6 +382,7 @@ namespace StratML.Blockchain
                             stratML.StrategicPlanCore.Vision.Identifier = Guid.NewGuid().ToString();
                         idToAddress.TryAdd(stratML.StrategicPlanCore.Vision.Identifier, vision.ContractHandler.ContractAddress);
                         entities.TryAdd(stratML.StrategicPlanCore.Vision.Identifier, EntityTypes.Vision);
+                        
                         await plan.UpdateVisionRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.UpdateVisionFunction
                         {
                             Vision = vision.ContractHandler.ContractAddress,
@@ -349,8 +391,14 @@ namespace StratML.Blockchain
                         }); 
                     }
                 }
-                foreach(var val in stratML.StrategicPlanCore.Value ?? [])
+                progress?.Report(new ProgressReport()
                 {
+                    Percent = 40,
+                    Status = "Deploying Values"
+                });
+                await Parallel.ForEachAsync(stratML.StrategicPlanCore.Value ?? [], async (val, t) =>
+                {
+                    
                     await plan.AddValueRequestAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.AddValueFunction
                     {
                         Name = val.Name ?? " ",
@@ -358,8 +406,13 @@ namespace StratML.Blockchain
                         Gas = 10000000,
                         GasPrice = gas
                     });
-                }
-                foreach(var goal in stratML.StrategicPlanCore.Goal ?? [])
+                });
+                progress?.Report(new ProgressReport()
+                {
+                    Percent = 50,
+                    Status = "Deploying Goals"
+                });
+                await Parallel.ForEachAsync(stratML.StrategicPlanCore.Goal ?? [], async (goal, t) =>
                 {
                     var g = await GoalService.DeployContractAndGetServiceAsync(W3, new GoalDeployment
                     {
@@ -377,14 +430,16 @@ namespace StratML.Blockchain
                             goal.Identifier = Guid.NewGuid().ToString();
                         idToAddress.TryAdd(goal.Identifier, g.ContractHandler.ContractAddress);
                         entities.TryAdd(goal.Identifier, EntityTypes.Goal);
+                        
                         await plan.AddGoalRequestAndWaitForReceiptAsync(new Contracts.PerfomancePlanOrReport.ContractDefinition.AddGoalFunction()
                         {
                             GoalAddress = g.ContractHandler.ContractAddress,
                             Gas = 10000000,
                             GasPrice = gas
                         });
-                        foreach(var stakeholder in goal.Stakeholder ?? [])
+                        await Parallel.ForEachAsync(goal.Stakeholder ?? [], async (stakeholder, t) =>
                         {
+                            
                             if (stakleholdersNamesToAddress.TryGetValue(stakeholder.Name, out string? address))
                                 await g.AddStakeholderRequestAndWaitForReceiptAsync(new Contracts.Goal.ContractDefinition.AddStakeholderFunction
                                 {
@@ -392,9 +447,10 @@ namespace StratML.Blockchain
                                     Gas = 10000000,
                                     GasPrice = gas
                                 });
-                        }
-                        foreach(var obj in goal.Objective ?? [])
+                        });
+                        await Parallel.ForEachAsync(goal.Objective ?? [], async (obj, t) =>
                         {
+                            
                             var o = await ObjectiveService.DeployContractAndGetServiceAsync(W3, new ObjectiveDeployment()
                             {
                                 Registry = registryAddress,
@@ -411,14 +467,16 @@ namespace StratML.Blockchain
                                     obj.Identifier = Guid.NewGuid().ToString();
                                 idToAddress.TryAdd(obj.Identifier, o.ContractHandler.ContractAddress);
                                 entities.TryAdd(obj.Identifier, EntityTypes.Objective);
+                                
                                 await g.AddObjectiveRequestAndWaitForReceiptAsync(new Contracts.Goal.ContractDefinition.AddObjectiveFunction()
                                 {
                                     ObjectiveAddress = o.ContractHandler.ContractAddress,
                                     Gas = 10000000,
                                     GasPrice = gas
                                 });
-                                foreach(var stakeholder in obj.Stakeholder ?? [])
+                                await Parallel.ForEachAsync(obj.Stakeholder ?? [], async (stakeholder, t) =>
                                 {
+                                    
                                     if (stakleholdersNamesToAddress.TryGetValue(stakeholder.Name, out string? address))
                                         await o.AddStakeholderRequestAndWaitForReceiptAsync(new Contracts.Objective.ContractDefinition.AddStakeholderFunction
                                         {
@@ -426,9 +484,10 @@ namespace StratML.Blockchain
                                             Gas = 10000000,
                                             GasPrice = gas
                                         });
-                                }
-                                foreach(var pi in obj.PerformanceIndicator ?? [])
+                                });
+                                await Parallel.ForEachAsync(obj.PerformanceIndicator ?? [], async (pi, t) =>
                                 {
+                                    
                                     var p = await PerformanceIndicatorService.DeployContractAndGetServiceAsync(W3, new PerformanceIndicatorDeployment()
                                     {
                                         Registry = registryAddress,
@@ -447,14 +506,16 @@ namespace StratML.Blockchain
                                             pi.Identifier = Guid.NewGuid().ToString();
                                         idToAddress.TryAdd(pi.Identifier, p.ContractHandler.ContractAddress);
                                         entities.TryAdd(pi.Identifier, EntityTypes.PerformanceIndicator);
+                                        
                                         await o.AddPerformanceIndicatorRequestAndWaitForReceiptAsync(new Contracts.Objective.ContractDefinition.AddPerformanceIndicatorFunction()
                                         {
                                             PerformanceIndicatorAddress = p.ContractHandler.ContractAddress,
                                             Gas = 10000000,
                                             GasPrice = gas
                                         });
-                                        foreach(var mi in pi.MeasurementInstance ?? [])
+                                        await Parallel.ForEachAsync(pi.MeasurementInstance ?? [], async (mi, t) =>
                                         {
+                                            
                                             await p.AddMeasurementInstanceRequestAndWaitForReceiptAsync(new Contracts.PerformanceIndicator.ContractDefinition.AddMeasurementInstanceFunction()
                                             {
                                                 MeasurementInstance = new Contracts.PerformanceIndicator.ContractDefinition.MeasurementInstance()
@@ -479,7 +540,7 @@ namespace StratML.Blockchain
                                                     {
                                                         StartDate = !string.IsNullOrEmpty(tr.StartDate) ? new DateTimeOffset(DateTime.Parse(tr.StartDate)).ToUnixTimeSeconds() : 0,
                                                         EndDate = !string.IsNullOrEmpty(tr.EndDate) ? new DateTimeOffset(DateTime.Parse(tr.EndDate)).ToUnixTimeSeconds() : 0,
-                                                        NumberOfUnits = !string.IsNullOrWhiteSpace(tr.NumberOfUnits) ? ConvertToDecimal(tr.NumberOfUnits) : new Decimal() { Value = 0, Precision = 0},
+                                                        NumberOfUnits = !string.IsNullOrWhiteSpace(tr.NumberOfUnits) ? ConvertToDecimal(tr.NumberOfUnits) : new Decimal() { Value = 0, Precision = 0 },
                                                         Descriptor = tr.Descriptor != null ? new Contracts.PerformanceIndicator.ContractDefinition.Descriptor()
                                                         {
                                                             Value = tr.Descriptor.DescriptorValue ?? " ",
@@ -495,13 +556,18 @@ namespace StratML.Blockchain
                                                 Gas = 10000000,
                                                 GasPrice = gas
                                             });
-                                        }
+                                        });
                                     }
-                                }
+                                });
                             }
-                        }
+                        });
                     }
-                }
+                });
+                progress?.Report(new ProgressReport()
+                {
+                    Percent = 80,
+                    Status = "Deploying Relationships"
+                });
                 foreach(var goal in stratML.StrategicPlanCore.Goal ?? [])
                 {
                     foreach(var obj in goal.Objective ?? [])
@@ -599,7 +665,7 @@ namespace StratML.Blockchain
 
         public async Task<PerformancePlanOrReport?> Load(string address, CancellationToken token = default)
         {
-            RateLimitter limitter = new RateLimitter();
+            
             PerfomancePlanOrReportService service = new PerfomancePlanOrReportService(W3, address);
             var report = await service.GetPerfomancePlanOrReportResponseQueryAsync();
             if(report == null || report.ReturnValue1 == null)
@@ -635,7 +701,7 @@ namespace StratML.Blockchain
             stratML.StrategicPlanCore = new StrategicPlanCore();
             foreach(var org in doc.StrategeticPlanCore.Organizations)
             {
-                await limitter.Wait();
+                
                 var os = new OrganizationService(W3, org.Identifier);
                 var od = (await os.GetOrganizationResponseQueryAsync()).ReturnValue1;
                 
@@ -659,7 +725,7 @@ namespace StratML.Blockchain
                     foreach(var role in sh.Roles)
                     {
                         var rs = new RoleService(W3, role.Identifier);
-                        await limitter.Wait();
+                        
                         var r = (await rs.GetRoleQueryAsync()).ReturnValue1;
                         roles.Add(new Role()
                         {
@@ -693,7 +759,7 @@ namespace StratML.Blockchain
             List<Goal> goals = new List<Goal>();
             foreach(var goal in doc.StrategeticPlanCore.Goals)
             {
-                await limitter.Wait();
+                
                 var gs = new GoalService(W3, goal.Identifier);
                 var g = (await gs.GetGoalResponseQueryAsync()).ReturnValue1;
                 Goal gl = new Goal()
@@ -709,7 +775,7 @@ namespace StratML.Blockchain
                 {
                     var ss = new StakeholderService(W3, sh.Identifier);
                     var s = (await ss.GetStakeholderQueryAsync()).ReturnValue1;
-                    await limitter.Wait();
+                    
                     var stake = new Stakeholder()
                     {
                         Name = s.Base.Name,
@@ -734,7 +800,7 @@ namespace StratML.Blockchain
                 foreach(var obj in g.Objectives)
                 {
                     var os = new ObjectiveService(W3, obj.Identifier);
-                    await limitter.Wait();
+                    
                     var o = (await os.GetObjectiveResponseQueryAsync()).ReturnValue1;
 
                     var objective = new ObjectiveType()
@@ -748,7 +814,7 @@ namespace StratML.Blockchain
                     List<Stakeholder> objStakeholders = new List<Stakeholder>();
                     foreach(var sh in o.Stakeholders)
                     {
-                        await limitter.Wait();
+                        
                         var ss = new StakeholderService(W3, sh.Identifier);
                         var s = (await ss.GetStakeholderQueryAsync()).ReturnValue1;
                         var stake = new Stakeholder()
@@ -774,7 +840,7 @@ namespace StratML.Blockchain
                     List<PerformanceIndicator> performanceIndicators = new List<PerformanceIndicator>();
                     foreach(var pi in o.Base.PerfomanceIndicators)
                     {
-                        await limitter.Wait();
+                        
                         var pis = new PerformanceIndicatorService(W3, pi.Identifier);
                         var p = (await pis.GetPerformanceIndicatorQueryAsync()).ReturnValue1;
                         var perf = new PerformanceIndicator()
@@ -817,7 +883,7 @@ namespace StratML.Blockchain
                         List<Relationship> rls = new List<Relationship>();
                         foreach(var refr in pi.Relationships)
                         {
-                            await limitter.Wait();
+                            
                             var rs = new RelationshipService(W3, refr.Identifier);
                             var r = (await rs.GetRelationshipQueryAsync()).ReturnValue1;
                             var rel = new Relationship()
@@ -852,24 +918,6 @@ namespace StratML.Blockchain
             return await registryService.GetAllPerfomancePlanOrReportsQueryAsync();
         }
     }
-    public class RateLimitter
-    {
-        protected SemaphoreSlim Semaphore { get; } = new SemaphoreSlim(5, 5);
-        protected Stopwatch Timer { get; } = new Stopwatch();
-        public RateLimitter()
-        {
-            Timer.Start();
-        }
-        public async Task Wait()
-        {
-            await Semaphore.WaitAsync();
-            long ms = Timer.ElapsedMilliseconds;
-            if (ms < 1000)
-            {
-                await Task.Delay(1000 - (int)ms);
-            }
-            Semaphore.Release();
-            Timer.Restart();
-        }
-    }
+   
+
 }

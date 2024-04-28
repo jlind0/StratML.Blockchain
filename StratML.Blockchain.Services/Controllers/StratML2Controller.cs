@@ -24,7 +24,7 @@ namespace StratML.Blockchain.Services.Controllers
         [HttpPost("deploy/{registryAddress}")]
         public async Task<ActionResult<string?>> DeployStratML([FromBody] PerformancePlanOrReport stratML, string registryAddress, CancellationToken token = default)
         {
-            var address = await Deployer.DeployStratML(registryAddress, stratML, token);
+            var address = await Deployer.DeployStratML(registryAddress, stratML, null, token);
             return address;
         }
         [HttpGet("{address}")]

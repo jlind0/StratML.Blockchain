@@ -11,9 +11,14 @@ namespace StratML.Blockchain.Core
 {
     public interface IStratMLDeployer
     {
-        Task<string?> DeployStratML(string registryAddress, PerformancePlanOrReport stratML, CancellationToken token = default);
+        Task<string?> DeployStratML(string registryAddress, PerformancePlanOrReport stratML, IProgress<ProgressReport> progress, CancellationToken token = default);
         Task<string?> DeployRegistry(CancellationToken token = default);
         Task<PerformancePlanOrReport?> Load(string address, CancellationToken token = default);
         Task<GetAllPerfomancePlanOrReportsOutputDTO> GetRegisteredPlans(string registry, CancellationToken token = default);
+    }
+    public class ProgressReport
+    {
+        public int Percent { get; set; }
+        public string Status { get; set; } = null!;
     }
 }

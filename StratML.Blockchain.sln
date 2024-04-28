@@ -5,13 +5,13 @@ VisualStudioVersion = 17.9.34723.18
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StratML.Blockchain.Contracts", "StratML.Blockchain.Contracts\StratML.Blockchain.Contracts.csproj", "{ED8D0DE3-0C9E-45E7-ABD1-9DE5D4FE1C3C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StratML.Core", "StratML.Core\StratML.Core.csproj", "{96B65FA3-EC32-4A71-81D7-EC42A617E25C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StratML.Core", "StratML.Core\StratML.Core.csproj", "{96B65FA3-EC32-4A71-81D7-EC42A617E25C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StratML.Blockchain", "StratML.Blockchain\StratML.Blockchain.csproj", "{6423099B-C302-4B9E-9F52-359F96CF45AF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StratML.Blockchain", "StratML.Blockchain\StratML.Blockchain.csproj", "{6423099B-C302-4B9E-9F52-359F96CF45AF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StratML.Blockchain.Core", "StratML.Blockchain.Core\StratML.Blockchain.Core.csproj", "{EC4CBC64-BE85-4D8F-B893-7BDE8E79BF1E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StratML.Blockchain.Core", "StratML.Blockchain.Core\StratML.Blockchain.Core.csproj", "{EC4CBC64-BE85-4D8F-B893-7BDE8E79BF1E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StratML.Blockchain.Services", "StratML.Blockchain.Services\StratML.Blockchain.Services.csproj", "{4DF71270-7A0D-4ED7-8302-D31343F8DBF0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StratML.Blockchain.Services", "StratML.Blockchain.Services\StratML.Blockchain.Services.csproj", "{4DF71270-7A0D-4ED7-8302-D31343F8DBF0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
