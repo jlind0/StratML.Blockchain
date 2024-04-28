@@ -463,25 +463,33 @@ namespace StratML.Blockchain
                                                     {
                                                         StartDate = !string.IsNullOrEmpty(ar.StartDate) ? new DateTimeOffset(DateTime.Parse(ar.StartDate)).ToUnixTimeSeconds() : 0,
                                                         EndDate = !string.IsNullOrEmpty(ar.EndDate) ? new DateTimeOffset(DateTime.Parse(ar.EndDate)).ToUnixTimeSeconds() : 0,
-                                                        NumberOfUnits = ConvertToDecimal(ar.NumberOfUnits),
-                                                        Descriptor = new Contracts.PerformanceIndicator.ContractDefinition.Descriptor()
+                                                        NumberOfUnits = !string.IsNullOrWhiteSpace(ar.NumberOfUnits) ? ConvertToDecimal(ar.NumberOfUnits) : new Decimal() { Value = 0, Precision = 0 },
+                                                        Descriptor = ar.Descriptor != null ? new Contracts.PerformanceIndicator.ContractDefinition.Descriptor()
                                                         {
                                                             Value = ar.Descriptor.DescriptorValue ?? " ",
                                                             Name = ar.Descriptor.DescriptorName ?? " "
+                                                        } : new Contracts.PerformanceIndicator.ContractDefinition.Descriptor()
+                                                        {
+                                                            Value = " ",
+                                                            Name = " "
                                                         },
-                                                        Description = ar.Description
+                                                        Description = ar.Description ?? " "
                                                     }).ToList(),
                                                     TargetResults = mi.TargetResult == null ? [] : mi.TargetResult.Select(tr => new Contracts.PerformanceIndicator.ContractDefinition.TargetResult()
                                                     {
                                                         StartDate = !string.IsNullOrEmpty(tr.StartDate) ? new DateTimeOffset(DateTime.Parse(tr.StartDate)).ToUnixTimeSeconds() : 0,
                                                         EndDate = !string.IsNullOrEmpty(tr.EndDate) ? new DateTimeOffset(DateTime.Parse(tr.EndDate)).ToUnixTimeSeconds() : 0,
-                                                        NumberOfUnits = ConvertToDecimal(tr.NumberOfUnits),
-                                                        Descriptor = new Contracts.PerformanceIndicator.ContractDefinition.Descriptor()
+                                                        NumberOfUnits = !string.IsNullOrWhiteSpace(tr.NumberOfUnits) ? ConvertToDecimal(tr.NumberOfUnits) : new Decimal() { Value = 0, Precision = 0},
+                                                        Descriptor = tr.Descriptor != null ? new Contracts.PerformanceIndicator.ContractDefinition.Descriptor()
                                                         {
                                                             Value = tr.Descriptor.DescriptorValue ?? " ",
                                                             Name = tr.Descriptor.DescriptorName ?? " "
+                                                        } : new Contracts.PerformanceIndicator.ContractDefinition.Descriptor()
+                                                        {
+                                                            Value = " ",
+                                                            Name = " "
                                                         },
-                                                        Description = tr.Description
+                                                        Description = tr.Description ?? " "
                                                     }).ToList()
                                                 },
                                                 Gas = 10000000,
@@ -838,10 +846,15 @@ namespace StratML.Blockchain
             stratML.StrategicPlanCore.Goal = goals.ToArray();
             return stratML;
         }
+        public async Task<GetAllPerfomancePlanOrReportsOutputDTO> GetRegisteredPlans(string registry, CancellationToken token = default)
+        {
+            StratMLRegistryService registryService = new StratMLRegistryService(W3, registry);
+            return await registryService.GetAllPerfomancePlanOrReportsQueryAsync();
+        }
     }
     public class RateLimitter
     {
-        protected long Count { get; set; } = 0;
+        protected SemaphoreSlim Semaphore { get; } = new SemaphoreSlim(5, 5);
         protected Stopwatch Timer { get; } = new Stopwatch();
         public RateLimitter()
         {
@@ -849,17 +862,14 @@ namespace StratML.Blockchain
         }
         public async Task Wait()
         {
-            Count++;
-            if (Count > 7)
-            { 
-                long ms = Timer.ElapsedMilliseconds;
-                if (ms < 12000)
-                {
-                    await Task.Delay(12000 - (int)ms);
-                }
-                Count = 0;
-                Timer.Restart();
+            await Semaphore.WaitAsync();
+            long ms = Timer.ElapsedMilliseconds;
+            if (ms < 1000)
+            {
+                await Task.Delay(1000 - (int)ms);
             }
+            Semaphore.Release();
+            Timer.Restart();
         }
     }
 }

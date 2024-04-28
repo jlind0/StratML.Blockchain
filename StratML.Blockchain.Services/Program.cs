@@ -2,12 +2,14 @@ using Nethereum.Web3;
 using Nethereum.Web3.Accounts;
 using StratML.Blockchain;
 using StratML.Blockchain.Core;
+using Microsoft.AspNetCore.Http.Timeouts;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers().AddXmlSerializerFormatters();
+builder.Services.AddRequestTimeouts();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -19,6 +21,7 @@ return w3;
 });
 builder.Services.AddSingleton<IStratMLDeployer, StratMLDeployer>();
 var app = builder.Build();
+app.UseRequestTimeouts();
 app.UseDeveloperExceptionPage();
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -27,6 +30,6 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapControllers().WithRequestTimeout(TimeSpan.FromHours(5));
 
 app.Run();

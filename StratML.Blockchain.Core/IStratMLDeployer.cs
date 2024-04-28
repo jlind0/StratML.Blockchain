@@ -1,4 +1,5 @@
 ﻿using StratML.Contracts.PerfomancePlanOrReport.ContractDefinition;
+using StratML.Contracts.StratMLRegistry.ContractDefinition;
 using StratML.Core;
 using System;
 using System.Collections.Generic;
@@ -13,5 +14,6 @@ namespace StratML.Blockchain.Core
         Task<string?> DeployStratML(string registryAddress, PerformancePlanOrReport stratML, CancellationToken token = default);
         Task<string?> DeployRegistry(CancellationToken token = default);
         Task<PerformancePlanOrReport?> Load(string address, CancellationToken token = default);
+        Task<GetAllPerfomancePlanOrReportsOutputDTO> GetRegisteredPlans(string registry, CancellationToken token = default);
     }
 }
