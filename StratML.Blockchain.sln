@@ -13,6 +13,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StratML.Blockchain.Core", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StratML.Blockchain.Services", "StratML.Blockchain.Services\StratML.Blockchain.Services.csproj", "{4DF71270-7A0D-4ED7-8302-D31343F8DBF0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StratML.Blockchain.ViewModels", "StratML.Blockchain.ViewModels\StratML.Blockchain.ViewModels.csproj", "{4DB1A04B-E1EC-4DE7-9EAD-ACBD6D4B46A5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StratML.Blockchain.Web", "StratML.Blockchain.Web\StratML.Blockchain.Web.csproj", "{B0BA9373-BC8D-4846-ADE6-A66477DDF4D6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +43,14 @@ Global
 		{4DF71270-7A0D-4ED7-8302-D31343F8DBF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DF71270-7A0D-4ED7-8302-D31343F8DBF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DF71270-7A0D-4ED7-8302-D31343F8DBF0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DB1A04B-E1EC-4DE7-9EAD-ACBD6D4B46A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DB1A04B-E1EC-4DE7-9EAD-ACBD6D4B46A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DB1A04B-E1EC-4DE7-9EAD-ACBD6D4B46A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DB1A04B-E1EC-4DE7-9EAD-ACBD6D4B46A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0BA9373-BC8D-4846-ADE6-A66477DDF4D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0BA9373-BC8D-4846-ADE6-A66477DDF4D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0BA9373-BC8D-4846-ADE6-A66477DDF4D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0BA9373-BC8D-4846-ADE6-A66477DDF4D6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

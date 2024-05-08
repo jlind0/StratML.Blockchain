@@ -56,7 +56,7 @@ namespace StratML.Blockchain
 
         public async Task<string?> DeployStratML(string registryAddress, PerformancePlanOrReport stratML, IProgress<ProgressReport>? progress = null, CancellationToken token = default)
         {
-            var gas = (long)Math.Floor(((long)(await W3.Eth.GasPrice.SendRequestAsync()).Value)*1.15m);
+            var gas = (long)Math.Floor(((long)(await W3.Eth.GasPrice.SendRequestAsync()).Value)*1.4m);
             StratMLRegistryService registryService = new StratMLRegistryService(W3, registryAddress);
             if(stratML == null)
             {

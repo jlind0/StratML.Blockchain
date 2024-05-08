@@ -1,0 +1,19 @@
+﻿@page "/"
+@inherits ReactiveUI.Blazor.ReactiveInjectableComponentBase<StratML.Blockchain.ViewModels.IndexViewModel>
+<PageTitle>Index</PageTitle>
+@if(ViewModel != null)
+{
+    
+    <h3>Registry Address</h3>
+    <InputText @bind-Value="@ViewModel.RegistryAddress" />
+    <h3>StratML</h3>
+    <InputTextArea @bind-Value="@ViewModel.Xml" />
+    <button @onclick="ViewModel.DeployStratML.BindCommand<MouseEventArgs>()">Deploy</button>
+    <p>@ViewModel.Status</p>
+    <h3>@ViewModel.Address</h3>
+    <h3>Plans</h3>
+    @foreach(var report in ViewModel.Plans)
+    {
+        <p>@report.Base.Name - @report.Base.Identifier</p>
+    }
+}

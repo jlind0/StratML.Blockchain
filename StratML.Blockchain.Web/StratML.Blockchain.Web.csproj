@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>631ae1f5-e851-4a8c-8340-e0c6a71e5c55</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ReactiveUI.Blazor" Version="19.6.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StratML.Blockchain.Contracts\StratML.Blockchain.Contracts.csproj" />
+    <ProjectReference Include="..\StratML.Blockchain.ViewModels\StratML.Blockchain.ViewModels.csproj" />
+    <ProjectReference Include="..\StratML.Blockchain\StratML.Blockchain.csproj" />
+    <ProjectReference Include="..\StratML.Core\StratML.Core.csproj" />
+  </ItemGroup>
+
+</Project>
